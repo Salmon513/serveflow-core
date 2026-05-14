@@ -15,6 +15,7 @@ Read these files completely before making decisions:
 5. docs/decisions.md
 6. docs/architecture.md
 7. docs/product.md
+8. docs/phase-principles.md
 
 Then:
 
