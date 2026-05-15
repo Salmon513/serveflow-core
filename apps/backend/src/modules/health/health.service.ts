@@ -1,12 +1,9 @@
 import { Injectable } from '@nestjs/common';
-
-interface HealthStatus {
-  status: 'ok';
-}
+import { HealthResponse } from '@serveflow/shared';
 
 @Injectable()
 export class HealthService {
-  check(): HealthStatus {
+  check(): HealthResponse {
     return { status: 'ok' };
   }
 }

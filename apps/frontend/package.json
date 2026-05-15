@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@serveflow/shared": "workspace:*",
     "@tailwindcss/oxide-linux-x64-gnu": "4.3.0",
     "next": "^16.2.6",
     "react": "^19.2.6",

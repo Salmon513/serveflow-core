@@ -83,13 +83,28 @@
 
 ## Phase 5 — Shared Packages & Contracts
 
-### Upcoming Tasks
+### Completed
 
-- [ ] Define shared domain types (Restaurant, Booking, Customer, etc.)
-- [ ] Define API contract types (request/response shapes)
-- [ ] Setup proper build pipeline for shared package
-- [ ] Configure TypeScript project references
-- [ ] Export reusable utilities
+- [x] Create `packages/shared/src/types/health-response.ts` — `HealthResponse` contract
+- [x] Create `packages/shared/src/types/api-response.ts` — `ApiResponse<T>` generic wrapper
+- [x] Create `packages/shared/src/types/booking.ts` — `Booking`, `BookingStatus`, `CreateBookingRequest`
+- [x] Create `packages/shared/src/types/customer.ts` — `Customer`, `CreateCustomerRequest`
+- [x] Update `packages/shared/src/types/index.ts` — barrel re-exports all domain types
+- [x] Update `packages/shared/src/index.ts` — clean entry point
+- [x] Create `packages/shared/tsconfig.build.json` — composite, declaration, declarationMap, outDir=dist
+- [x] Update `packages/shared/package.json` — build scripts, main/types → dist/
+- [x] Add `@serveflow/shared: workspace:*` to `apps/backend` dependencies
+- [x] Add `@serveflow/shared: workspace:*` to `apps/frontend` dependencies
+- [x] Update `apps/backend/tsconfig.json` — project references → shared/tsconfig.build.json
+- [x] Update `apps/backend/package.json` — build uses `tsc --build`
+- [x] Update `apps/backend/src/modules/health/health.service.ts` — use `HealthResponse` from shared
+- [x] Update `apps/backend/src/modules/health/health.controller.ts` — typed return `HealthResponse`
+- [x] Update `apps/frontend/app/page.tsx` — `import type { HealthResponse }`, typed state placeholder
+- [x] Add root `package.json` build orchestration scripts
+- [x] Verify shared build: `dist/` emits `.js` + `.d.ts` + `.d.ts.map` for all types
+- [x] Verify backend build: `tsc --build` passes clean
+- [x] Verify frontend build: `next build` passes clean (Node 20)
+- [x] Verify full typecheck: `pnpm typecheck` passes across all 3 packages
 
 ---
 

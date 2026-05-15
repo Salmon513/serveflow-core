@@ -1,5 +1,4 @@
-// @serveflow/shared — Phase 2 shell
-// Shared types, utilities, and contracts across backend and frontend
-// Phase 5 (Shared Packages & Contracts) will expand this
+// @serveflow/shared — framework-agnostic domain contracts
+// Shared types and API contracts across backend and frontend
 
 export * from './types';

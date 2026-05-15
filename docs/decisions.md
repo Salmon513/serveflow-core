@@ -66,6 +66,8 @@ Reason:
 - Phase 5 will introduce a proper build pipeline when contracts stabilize
 - keeps Phase 2 minimal and focused on shells only
 
+Superseded by Decision 018.
+
 ---
 
 ## Decision 007
@@ -191,6 +193,86 @@ Reason:
 
 ---
 
+## Decision 017
+
+Upgrade frontend from Node 18 compatibility to Node 20+ ecosystem with Next.js 16.
+
+Reason:
+- Node v20.19.2 runtime provides significant performance improvements over Node 18 (up to 30% faster cold starts, improved V8 optimizer)
+- Next.js 16 introduces Turbopack as the default bundler — production build times 5–10× faster than webpack
+- React 19.2.6 with concurrent features fully optimized for Node 20+ native APIs
+- Tailwind v4 with Oxide (Rust engine) leverages Node 20's improved native addon performance
+- Node 20 LTS support extends until April 2026 — longer security maintenance window than Node 18
+- ESM and import.meta fully stabilized in Node 20 — better ecosystem compatibility for future migrations
+
+Trade-offs:
+- Next.js 16 is a major version — requires verification after upgrade (typecheck + build + runtime)
+- Turbopack is now stable but ecosystem plugins may lag webpack compatibility
+
+Verified:
+- Node runtime: v20.19.2 ✓
+- Next.js: upgraded 15.5.18 → 16.2.6 ✓
+- React: 19.2.6 (already latest) ✓
+- Tailwind: 4.3.0 (already latest) ✓
+- TypeScript: compilation clean ✓
+- Build: successful with Turbopack in 3.6s ✓
+- App Router: fully preserved ✓
+
+---
+
+## Decision 018
+
+Separate `tsconfig.json` (typecheck) and `tsconfig.build.json` (compilation) for `@serveflow/shared`.
+
+Reason:
+- `tsconfig.json` (noEmit: true) is used for IDE type-checking and `tsc --noEmit` — no output produced
+- `tsconfig.build.json` (composite: true, declaration: true, outDir: dist) is used for compilation only
+- Separation prevents the typecheck-only path from accidentally emitting files
+- `composite: true` is required on the build config for TypeScript project references to work
+- Backend references `packages/shared/tsconfig.build.json` explicitly — consuming only the build config
+- This pattern is idiomatic in TypeScript monorepos with mixed build/typecheck needs
+
+---
+
+## Decision 019
+
+Backend uses `tsc --build` (project references build mode) instead of plain `tsc`.
+
+Reason:
+- `tsc --build` with project references checks if shared is stale before compiling backend
+- Incremental compilation via `.tsbuildinfo` — only recompiles changed files
+- Eliminates risk of backend building against stale shared declarations
+- Does not require changing backend's `composite` flag (backend is not referenced by other projects)
+- The `.tsbuildinfo` file is already covered by the root `.gitignore` (`tsconfig.tsbuildinfo`)
+
+---
+
+## Decision 020
+
+Frontend does not use TypeScript project references for `@serveflow/shared`.
+
+Reason:
+- Frontend uses `moduleResolution: Bundler` — resolution is more permissive and does not use Node-style package.json `exports` strictly
+- Next.js/Turbopack handles all compilation; `tsc` on the frontend is typecheck-only (`noEmit: true`)
+- Bundler resolution follows workspace symlink → `package.json` → `types: dist/index.d.ts` naturally
+- Adding references to the frontend tsconfig would require `composite: true` on the frontend itself, which has no value since nothing references it
+- Simpler: frontend relies on the pre-built `dist/` from shared, available after `pnpm build:shared`
+
+---
+
+## Decision 021
+
+Domain types are plain TypeScript interfaces — no framework coupling.
+
+Reason:
+- `@serveflow/shared` has zero framework dependencies (no NestJS, no React, no ORM)
+- Types can be safely imported by backend controllers, frontend components, future mobile apps, scripts, etc.
+- NestJS DTOs (for validation) will extend or reference these interfaces but live in the backend only
+- Database entity models (Phase 6) will map to these interfaces but live in the backend only
+- This is the single source of truth for the domain contract across the entire system
+
+---
+
 # Future Precautions
 
 ## TS Config Deprecation
@@ -219,29 +301,22 @@ Reason:
 - Keep `.npmrc` in version control so all environments (CI, teammates, Codex) use the same registry
 - Local Verdaccio or Nexus registries are common in enterprise setups; the project `.npmrc` overrides them predictably
 
----
+## Node Version
 
-## Decision 017
+- Next.js 16 requires Node.js >=20.9.0 — always use `nvm use 20` before running frontend builds or `next dev`
+- Backend (NestJS) is compatible with Node 18+ but Node 20 is preferred for consistency
+- Add `.nvmrc` file at monorepo root in Phase 6 to automate this
 
-Upgrade frontend from Node 18 compatibility to Node 20+ ecosystem with Next.js 16.
+## Shared Package Build Dependency
 
-Reason:
-- Node v20.19.2 runtime provides significant performance improvements over Node 18 (up to 30% faster cold starts, improved V8 optimizer)
-- Next.js 16 introduces Turbopack as the default bundler — production build times 5–10× faster than webpack
-- React 19.2.6 with concurrent features fully optimized for Node 20+ native APIs
-- Tailwind v4 with Oxide (Rust engine) leverages Node 20's improved native addon performance
-- Node 20 LTS support extends until April 2026 — longer security maintenance window than Node 18
-- ESM and import.meta fully stabilized in Node 20 — better ecosystem compatibility for future migrations
+- `@serveflow/shared` must be compiled (`pnpm build:shared`) before any app typecheck or build
+- Backend `tsc --build` handles this automatically via project references
+- Frontend `next build` and frontend `tsc --noEmit` require `dist/` to pre-exist — use `pnpm typecheck` (root) which runs `build:shared` first
+- In CI: add `pnpm build:shared` as the first build step before parallel app builds
 
-Trade-offs:
-- Next.js 16 is a major version — requires verification after upgrade (typecheck + build + runtime)
-- Turbopack is now stable but ecosystem plugins may lag webpack compatibility
+## Domain Type Discipline
 
-Verified:
-- Node runtime: v20.19.2 ✓
-- Next.js: upgraded 15.5.18 → 16.2.6 ✓
-- React: 19.2.6 (already latest) ✓
-- Tailwind: 4.3.0 (already latest) ✓
-- TypeScript: compilation clean ✓
-- Build: successful with Turbopack in 3.6s ✓
-- App Router: fully preserved ✓
+- Keep `@serveflow/shared` types free of framework imports permanently
+- NestJS validation: create DTOs in backend that reference shared types (do not add `class-validator` to shared)
+- Database mapping: create entity classes in backend that implement shared interfaces (do not add TypeORM/Prisma to shared)
+- Frontend state: frontend components consume shared types directly — no adapter layer needed
