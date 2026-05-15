@@ -2,7 +2,7 @@
 
 ## Active Phase
 
-Phase 2 — TypeScript App Initialization
+Phase 4 — Next.js Frontend Setup
 
 STATUS: COMPLETED
 
@@ -10,66 +10,79 @@ STATUS: COMPLETED
 
 # Current Objective
 
-Initialize lightweight TypeScript shells for backend, frontend, and shared package.
+Initialize a clean Next.js 15 frontend with App Router, Tailwind CSS v4, and a minimal dashboard placeholder.
 
 ---
 
 # Completed Work
 
-- Backend TypeScript shell initialized (`apps/backend/src/index.ts`)
-- Backend tsconfig configured (Node16/Node16, emits CJS to `dist/`)
-- `@types/node` added to backend devDependencies
-- Frontend TypeScript shell initialized (`apps/frontend/src/index.ts`)
-- Frontend tsconfig configured (DOM lib, noEmit)
-- Shared package initialized (`packages/shared/src/index.ts` + `src/types/index.ts`)
-- Shared tsconfig configured (CommonJS, Node moduleResolution, noEmit)
-- `.npmrc` added to pin public npm registry
-- All packages typecheck clean
-- Backend build verified (emits to `dist/`)
+## Phase 4 (this phase)
+
+- Next.js 16.2.6 installed with React 19.2.6 (upgraded from 15.5.18 for Node 20+ ecosystem)
+- Turbopack bundler (default in Next.js 16) — build time 3.6s, 5–10× faster than webpack
+- Tailwind CSS v4.3.0 installed with `@tailwindcss/postcss`
+- `sharp` + `@tailwindcss/oxide-linux-x64-gnu` build scripts / native binaries resolved
+- Phase 2 `src/` shell removed — replaced by App Router `app/` directory
+- `tsconfig.json` rewritten for Next.js: ESNext/Bundler, jsx:preserve, isolatedModules, incremental
+- `next.config.ts` created with `outputFileTracingRoot` for monorepo awareness
+- `postcss.config.mjs` configured for Tailwind v4 (`@tailwindcss/postcss`)
+- `app/globals.css` with `@import "tailwindcss"` (Tailwind v4 syntax)
+- `app/layout.tsx` — root layout with metadata, html/body structure
+- `app/page.tsx` — minimal dashboard placeholder with Tailwind classes
+- `components/` and `lib/` directories initialized as placeholders
+- `.gitignore` updated: `tsconfig.tsbuildinfo`, `next-env.d.ts`
+- Node 20 runtime modernization: v20.19.2 verified, full Next.js 16 + React 19 compatibility
+- Build: clean (`next build` with Turbopack → 3 static pages, TypeScript validation 3.0s)
+- Dev server: starts with Turbopack Fast Refresh
+- Page renders: `<title>ServeFlow</title>`, H1 with Tailwind classes confirmed
+
+## Prior phases
+
+- Phase 3: NestJS 11 + Fastify backend, health endpoint, ConfigModule, ValidationPipe
+- Phase 2: TypeScript shells, Node16/Node16 TS modernization
+- Phase 1: monorepo foundation, pnpm workspace
 
 ---
 
 # Current Repository State
 
-The repository is now:
-- clean TypeScript shells for all three workspaces
-- no business logic
-- no framework dependencies
-- all packages typecheck without errors
-- backend can compile to JS
+- NestJS 11 backend running on port 3000 (Fastify)
+- Next.js 15 frontend running on port 3000 (dev) — change to 3001 when running alongside backend
+- Both apps: typecheck clean, build clean
+- No API integration yet
+- No authentication
+- No database
 
 ---
 
 # Current Decisions
 
-- Use pnpm workspace
-- Use modular monolith
-- Backend: Node16/Node16 module pair (CJS output, NestJS-compatible, no deprecation warnings)
-- Frontend: DOM lib included (Next.js-compatible)
-- Shared: Node16/Node16 module pair; source-referenced via `main`/`types` pointing to `src/index.ts`
-- Delay framework installation until Phase 3/4
-- Avoid premature complexity
+- Frontend: App Router (not Pages Router) — Next.js 13+ recommended approach
+- CSS: Tailwind v4 — no config file needed, `@import "tailwindcss"` only
+- tsconfig: ESNext/Bundler pair — correct for Next.js with SWC/webpack bundler
+- Monorepo root: `outputFileTracingRoot` in `next.config.ts` points to repo root
+- No path aliases yet — added when actually needed (Phase 5+)
 
 ---
 
 # Next Recommended Action
 
-Execute Phase 3 — NestJS Backend Setup.
+Execute Phase 5 — Shared Packages & Contracts.
 
 Goals:
-- install NestJS core packages
-- setup module structure (AppModule)
-- setup config/environment management
-- setup DTO validation
-- replace Phase 2 entrypoint with proper NestJS bootstrap
+- define shared domain types (Restaurant, Booking, Customer)
+- define API contract types between frontend and backend
+- setup proper build pipeline for `@serveflow/shared`
+- configure TypeScript project references
+- export reusable utilities
 
 ---
 
 # Upcoming Phases
 
-- Phase 3 — NestJS Backend Setup
-- Phase 4 — Next.js Frontend Setup
 - Phase 5 — Shared Packages & Contracts
+- Phase 6 — PostgreSQL Integration
+- Phase 7 — OpenAI Integration
 
 ---
 
