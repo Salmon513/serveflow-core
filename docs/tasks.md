@@ -1,9 +1,7 @@
 # Current Sprint
 
 ## Phase 1 — Monorepo Foundation
-
 ### Completed
-
 - [x] Setup repo structure
 - [x] Setup Codex memory system
 - [x] Setup pnpm workspace
@@ -15,102 +13,83 @@
 ---
 
 ## Phase 2 — TypeScript App Initialization
-
 ### Completed
-
-- [x] Create TypeScript backend shell (`apps/backend/src/index.ts`)
-- [x] Create backend tsconfig extending base (Node16/Node16 pair)
-- [x] Add `@types/node` devDependency to backend
-- [x] Create minimal backend entrypoint (prepared for NestJS bootstrap)
-- [x] Create TypeScript frontend shell (`apps/frontend/src/index.ts`)
-- [x] Create frontend tsconfig extending base (DOM lib included)
-- [x] Initialize shared package exports (`packages/shared/src/index.ts`)
-- [x] Create shared types structure (`packages/shared/src/types/index.ts`)
+- [x] Create TypeScript backend/frontend shells
+- [x] Create backend/frontend tsconfigs (Node16/Node16 pair)
+- [x] Initialize shared package exports
 - [x] Add `.npmrc` for public npm registry
 - [x] Verify all packages typecheck clean
-- [x] Verify backend build emits correctly
 - [x] Fix deprecated `moduleResolution: Node` → `Node16/Node16` pair
 
 ---
 
 ## Phase 3 — NestJS Backend Setup
-
 ### Completed
-
-- [x] Install NestJS core packages (v11)
-- [x] Install Fastify HTTP adapter (`@nestjs/platform-fastify`)
-- [x] Install `@nestjs/config` for environment management
-- [x] Install `class-validator` + `class-transformer` for ValidationPipe
-- [x] Approve `@nestjs/core` build script via `pnpm.onlyBuiltDependencies`
-- [x] Add `experimentalDecorators` + `emitDecoratorMetadata` to backend tsconfig
-- [x] Add `sourceMap: true` to backend tsconfig
-- [x] Replace Phase 2 shell with NestJS `main.ts` bootstrap
-- [x] Create `app.module.ts` with `ConfigModule` (global) + `HealthModule`
-- [x] Create `modules/health/health.service.ts` with `check()` returning `{ status: 'ok' }`
-- [x] Create `modules/health/health.controller.ts` with `GET /health`
-- [x] Create `modules/health/health.module.ts`
-- [x] Add `clean` script to backend package.json
-- [x] Verify typecheck passes
-- [x] Verify build compiles cleanly
-- [x] Verify server starts and `/health` returns `{"status":"ok"}`
+- [x] Install NestJS core packages (v11) + Fastify adapter
+- [x] Install `@nestjs/config`, `class-validator`, `class-transformer`
+- [x] Replace shell with NestJS `main.ts` bootstrap
+- [x] Create AppModule with ConfigModule + HealthModule
+- [x] Create health controller, service, module
+- [x] Verify build + server start + `/health` returns `{"status":"ok"}`
 
 ---
 
 ## Phase 4 — Next.js Frontend Setup
-
 ### Completed
-
-- [x] Install Next.js 15, React 19, react-dom
-- [x] Install `@types/react`, `@types/react-dom`
-- [x] Install Tailwind CSS v4 + `@tailwindcss/postcss`
-- [x] Approve `sharp` build script via `pnpm.onlyBuiltDependencies`
-- [x] Install missing `@tailwindcss/oxide-linux-x64-gnu` platform binary
-- [x] Delete Phase 2 `src/` shell
-- [x] Write Next.js-compatible `tsconfig.json` (ESNext/Bundler, jsx: preserve)
-- [x] Create `next.config.ts` with `outputFileTracingRoot` for monorepo
-- [x] Create `postcss.config.mjs` for Tailwind v4
-- [x] Create `app/globals.css` with `@import "tailwindcss"`
-- [x] Create `app/layout.tsx` with metadata and root HTML/body
-- [x] Create `app/page.tsx` dashboard placeholder with Tailwind styles
-- [x] Create `components/.gitkeep` and `lib/.gitkeep` placeholders
-- [x] Add `tsconfig.tsbuildinfo` and `next-env.d.ts` to `.gitignore`
-- [x] Verify `next build` compiles clean
-- [x] Verify `next dev` starts and `GET /` returns HTTP 200
-- [x] Verify `<title>ServeFlow</title>` and H1 render with Tailwind classes
-- [x] Verify typecheck passes
+- [x] Install Next.js 16, React 19, Tailwind v4
+- [x] Create App Router structure (app/layout.tsx, app/page.tsx, app/globals.css)
+- [x] Create next.config.ts, postcss.config.mjs
+- [x] Verify `next build` and `next dev` clean
 
 ---
 
 ## Phase 5 — Shared Packages & Contracts
-
 ### Completed
+- [x] Create shared domain types: HealthResponse, ApiResponse<T>, Booking, Customer
+- [x] Create tsconfig.build.json for shared (composite, declaration, outDir=dist)
+- [x] Update shared package.json (build scripts, main/types → dist/)
+- [x] Add @serveflow/shared workspace dep to backend + frontend
+- [x] Configure TypeScript project references (backend → shared)
+- [x] Wire HealthResponse into health service + controller
+- [x] Add root orchestration scripts (build, typecheck)
+- [x] Verify full typecheck + build across all packages
 
-- [x] Create `packages/shared/src/types/health-response.ts` — `HealthResponse` contract
-- [x] Create `packages/shared/src/types/api-response.ts` — `ApiResponse<T>` generic wrapper
-- [x] Create `packages/shared/src/types/booking.ts` — `Booking`, `BookingStatus`, `CreateBookingRequest`
-- [x] Create `packages/shared/src/types/customer.ts` — `Customer`, `CreateCustomerRequest`
-- [x] Update `packages/shared/src/types/index.ts` — barrel re-exports all domain types
-- [x] Update `packages/shared/src/index.ts` — clean entry point
-- [x] Create `packages/shared/tsconfig.build.json` — composite, declaration, declarationMap, outDir=dist
-- [x] Update `packages/shared/package.json` — build scripts, main/types → dist/
-- [x] Add `@serveflow/shared: workspace:*` to `apps/backend` dependencies
-- [x] Add `@serveflow/shared: workspace:*` to `apps/frontend` dependencies
-- [x] Update `apps/backend/tsconfig.json` — project references → shared/tsconfig.build.json
-- [x] Update `apps/backend/package.json` — build uses `tsc --build`
-- [x] Update `apps/backend/src/modules/health/health.service.ts` — use `HealthResponse` from shared
-- [x] Update `apps/backend/src/modules/health/health.controller.ts` — typed return `HealthResponse`
-- [x] Update `apps/frontend/app/page.tsx` — `import type { HealthResponse }`, typed state placeholder
-- [x] Add root `package.json` build orchestration scripts
-- [x] Verify shared build: `dist/` emits `.js` + `.d.ts` + `.d.ts.map` for all types
-- [x] Verify backend build: `tsc --build` passes clean
-- [x] Verify frontend build: `next build` passes clean (Node 20)
-- [x] Verify full typecheck: `pnpm typecheck` passes across all 3 packages
+---
+
+## Phase 6 — PostgreSQL Integration
+### Completed
+- [x] Add `.nvmrc` pinning Node 20
+- [x] Add `.env.example` with DB connection variables
+- [x] Create `docker-compose.yml` (postgres:16-alpine, port 5433)
+- [x] Install `pg`, `dotenv` (deps); `@types/pg`, `tsx` (devDeps) in backend
+- [x] Approve `esbuild` build script in root `pnpm.onlyBuiltDependencies`
+- [x] Create `database/database.provider.ts` — pg Pool factory via ConfigService
+- [x] Create `database/database.module.ts` — exports Pool provider
+- [x] Create `database/migrations/001_create_customers.sql`
+- [x] Create `database/migrations/002_create_bookings.sql`
+- [x] Create `database/migrate.ts` — standalone tsx migration runner with schema_migrations tracking
+- [x] Create `modules/customer/customer.repository.ts` — findById, findByPhone, create
+- [x] Create `modules/customer/customer.module.ts`
+- [x] Create `modules/booking/booking.repository.ts` — findById, findByCustomerId, create, updateStatus
+- [x] Create `modules/booking/booking.module.ts`
+- [x] Update `app.module.ts` — register DatabaseModule, CustomerModule, BookingModule
+- [x] Update `health.module.ts` — import DatabaseModule
+- [x] Update `health.service.ts` — async SELECT 1 DB ping
+- [x] Update `health.controller.ts` — async check()
+- [x] Update `packages/shared/src/types/health-response.ts` — optional db field
+- [x] Add `migrate` script to backend package.json
+- [x] Start PostgreSQL (Docker, port 5433)
+- [x] Create `apps/backend/.env` with DB config
+- [x] Run migrations: 001_create_customers ✓, 002_create_bookings ✓
+- [x] Verify migration idempotency (second run: both skipped) ✓
+- [x] Verify `GET /health` returns `{"status":"ok","db":"connected"}` ✓
+- [x] Verify backend build: `tsc --build` clean ✓
+- [x] Verify full typecheck: 0 errors ✓
 
 ---
 
 ## Future
 
-- Phase 6: PostgreSQL integration
 - Phase 7: OpenAI integration
 - Phase 8: WhatsApp integration
 - Phase 9: Booking workflow MVP

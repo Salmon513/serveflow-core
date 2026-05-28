@@ -13,6 +13,6 @@
     "typescript": "^5.9.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@nestjs/core", "sharp"]
+    "onlyBuiltDependencies": ["@nestjs/core", "esbuild", "sharp"]
   }
 }

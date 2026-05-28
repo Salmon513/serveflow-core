@@ -1,322 +1,199 @@
 # Engineering Decisions
 
-## Decision 001
+## Decision 001 — pnpm workspace over Nx/Turborepo
+Use pnpm workspace. Lower complexity, faster early-stage iteration.
 
-Use pnpm workspace instead of Nx/Turborepo initially.
+## Decision 002 — Delay framework installation
+Stabilize monorepo foundation before installing frameworks. Maintain controlled layering.
 
-Reason:
-- lower complexity
-- better early-stage maintainability
-- faster iteration
+## Decision 003 — Avoid Bolt template
+Product mismatch, excessive inherited complexity, Codex confusion risk.
 
----
+## Decision 004 — Project-level .npmrc
+Pin `registry=https://registry.npmjs.org`. Prevents local Verdaccio interference in CI and other environments.
 
-## Decision 002
+## Decision 005 — Node16/Node16 TypeScript pair for backend and shared
+`module: Node16` outputs CJS (no `"type": "module"`). `moduleResolution: Node16` is the modern non-deprecated Node resolution. TypeScript 5.9 enforces this pair.
 
-Delay framework installation until monorepo foundation stabilized.
+## Decision 006 — (Superseded by Decision 018)
+Shared package originally pointed `main`/`types` to `src/index.ts`. Replaced in Phase 5 with a proper build pipeline.
 
-Reason:
-- avoid premature architecture
-- maintain controlled layering
+## Decision 007 — Node16 not CommonJS + Node16
+TypeScript 5.9 (TS5110) rejects mismatched pairs. `module: Node16` outputs CJS when no `"type": "module"` present — functionally identical to CommonJS but correctly paired.
 
----
+## Decision 008 — Fastify adapter for NestJS
+2–4× better p99 throughput than Express. First-class NestJS support. Cheaper to adopt early than migrate after business logic exists.
 
-## Decision 003
+## Decision 009 — Global ValidationPipe
+`whitelist: true` strips unknown fields. `forbidNonWhitelisted: true` makes contract violations explicit. `transform: true` coerces request objects to DTO instances. Applied globally at bootstrap.
 
-Avoid using the Bolt template as production foundation.
+## Decision 010 — ConfigModule.forRoot({ isGlobal: true })
+Single `.env` load at startup. No re-importing ConfigModule in each feature module. `@nestjs/config` wraps dotenv — no extra dependency.
 
-Reason:
-- product mismatch
-- excessive inherited complexity
-- Codex confusion risk
+## Decision 011 — pnpm.onlyBuiltDependencies allowlist
+pnpm 10 blocks all postinstall scripts by default. Explicit allowlist in `package.json` is version-controlled and CI-safe. Current allowlist: `@nestjs/core`, `esbuild`, `sharp`.
 
----
+## Decision 012 — Next.js App Router
+App Router is Next.js 13+ default. Server Components by default. Pages Router is in maintenance mode. Filesystem-based routing under `app/`.
 
-## Decision 004
+## Decision 013 — Tailwind CSS v4
+Eliminates `tailwind.config.ts`. Single-line CSS entry. Oxide (Rust) engine for faster builds. Native binary (`@tailwindcss/oxide-linux-x64-gnu`) must be installed explicitly on Linux.
 
-Add `.npmrc` at project root to pin `registry=https://registry.npmjs.org`.
+## Decision 014 — ESNext/Bundler for frontend tsconfig
+Next.js uses SWC/Turbopack — TypeScript is for type-checking only, not compilation. `Bundler` resolution is correct for bundled browser code.
 
-Reason:
-- developer environment had a local Verdaccio registry configured globally
-- project should always resolve packages from the public npm registry
-- prevents install failures in CI and other environments
+## Decision 015 — outputFileTracingRoot in next.config.ts
+Points to monorepo root. Ensures correct dependency graph for deployment output tracing.
 
----
+## Decision 016 — Explicit @tailwindcss/oxide-linux-x64-gnu
+pnpm did not auto-install this optional dep. Tailwind v4 PostCSS fails without the native binding. Explicit installation is the reliable fix.
 
-## Decision 005
+## Decision 017 — Node 20 + Next.js 16 upgrade
+Node 20 LTS. Next.js 16 introduces Turbopack default bundler (5–10× faster builds). Required for Next.js 16: `>=20.9.0`.
 
-Backend and shared tsconfigs use `module: Node16` and `moduleResolution: Node16`.
+## Decision 018 — Dual tsconfig for shared (typecheck vs build)
+`tsconfig.json` (noEmit: true) for IDE/typecheck. `tsconfig.build.json` (composite, declaration, outDir: dist) for compilation. Separation prevents accidental emission from typecheck path.
 
-Reason:
-- `module: Node16` outputs CJS when the package has no `"type": "module"` — NestJS-compatible
-- `moduleResolution: Node16` is the modern non-deprecated equivalent of the old `Node` (node10) algorithm
-- TypeScript 5.9 enforces that Node16 module and moduleResolution must be paired together
-- In CJS mode (no `"type": "module"` in package.json): barrel imports and relative imports without extensions still work identically to the deprecated `node10` behavior
-- Respects `"exports"` field in `package.json` for consumed packages — strictly better than node10
+## Decision 019 — Backend uses tsc --build
+Leverages project references. Incremental compilation via `.tsbuildinfo`. Auto-rebuilds shared if stale.
 
----
+## Decision 020 — Frontend skips TypeScript project references
+`moduleResolution: Bundler` resolves shared via workspace symlink + `types` field in package.json. Next.js/Turbopack handles compilation. No value in adding references to frontend tsconfig.
 
-## Decision 006
-
-Shared package exposes `src/index.ts` directly via `main` and `types` fields.
-
-Reason:
-- avoids a build step for shared in Phase 2
-- internal monorepo packages can reference TypeScript source directly
-- Phase 5 will introduce a proper build pipeline when contracts stabilize
-- keeps Phase 2 minimal and focused on shells only
-
-Superseded by Decision 018.
+## Decision 021 — Domain types are plain TypeScript interfaces
+`@serveflow/shared` has zero framework dependencies. Types serve as the single source of truth across backend, frontend, and future mobile.
 
 ---
 
-## Decision 007
+## Decision 022 — node-postgres (pg) over ORM for Phase 6
 
-Use `module: Node16` + `moduleResolution: Node16` — not `module: CommonJS` + `moduleResolution: Node16`.
+Use `pg` (node-postgres) directly without an ORM or query builder.
 
 Reason:
-- TypeScript 5.9 (TS5110) rejects mixing `module: CommonJS` with `moduleResolution: Node16`; the pair must be consistent
-- `module: Node16` is not ESM — it conditionally emits CJS or ESM based on the nearest `package.json` `"type"` field; with no `"type": "module"`, output is CJS
-- This is not an ESM migration; the compiled output remains identical `"use strict"` CommonJS
-- Node16 pairing resolves the VSCode deprecation warning while preserving all CJS runtime behavior
+- Explicit SQL is readable, debuggable, and has no magic
+- No learning curve for ORM-specific query API
+- Full control over query shape, indexes, and RETURNING clauses
+- No ORM migration lock-in — raw `.sql` files are portable and version-controllable
+- pg is the reference PostgreSQL client for Node.js — stable, minimal, battle-tested
+- Can adopt TypeORM or Drizzle in Phase 12 (SaaS evolution) if query complexity justifies it
+
+Trade-off:
+- More boilerplate per query vs ORM
+- Manual row-to-domain type mapping required — acceptable at this scale
 
 ---
 
-## Decision 008
+## Decision 023 — Versioned SQL migration files with custom runner
 
-Use Fastify as the NestJS HTTP adapter (`@nestjs/platform-fastify`).
+Use versioned `.sql` files (`001_*.sql`, `002_*.sql`, ...) and a custom TypeScript migration runner instead of a migration library (Flyway, db-migrate, golang-migrate).
 
 Reason:
-- aligns with project preferred stack (Fastify over Express)
-- better raw throughput than Express (2–4× at p99)
-- NestJS supports Fastify as a first-class adapter via `NestFastifyApplication`
-- easier to swap in Phase 3 than to migrate later after business logic is built
+- Zero migration library dependency — one less thing to configure and maintain
+- Migration files are plain SQL — readable by anyone, portable to any tool
+- Custom runner is 60 lines — fully understood and controlled
+- Schema tracking via `schema_migrations` table follows the industry-standard pattern
+- Each migration runs in a transaction — atomic, rolled back on failure
+- Idempotent by design — safe to re-run at any time
+
+Trade-off:
+- No automatic rollback scripts (up-only) — acceptable for Phase 6; add down migrations in Phase 12 if needed
+- No out-of-order migration detection — file naming convention enforces order
 
 ---
 
-## Decision 009
+## Decision 024 — pg Pool injected via NestJS DI token (DATABASE_POOL)
 
-Global `ValidationPipe` with `whitelist: true`, `forbidNonWhitelisted: true`, `transform: true`.
+Export a `Pool` instance via a custom provider token (`DATABASE_POOL`) from `DatabaseModule`, rather than using `@InjectRepository` or per-repository pool construction.
 
 Reason:
-- `whitelist` strips properties not in DTO — prevents unknown field injection
-- `forbidNonWhitelisted` throws 400 instead of silently stripping — makes contract violations explicit
-- `transform` auto-coerces plain request objects to DTO class instances
-- applied globally at bootstrap — consistent across all future controllers without per-route setup
+- Single connection pool shared across all repositories — no pool per repository
+- Pool configuration centralized in `database.provider.ts` — one place to tune max connections, timeouts
+- Clean NestJS DI pattern: repositories receive pool via `@Inject(DATABASE_POOL)`
+- `DatabaseModule.exports = [...databaseProviders]` makes pool available to any importing module
+- `@Optional()` injection in HealthService allows graceful startup if DB is not configured
 
 ---
 
-## Decision 010
+## Decision 025 — tsx for migration runner, not tsc compile
 
-`ConfigModule.forRoot({ isGlobal: true })` as the environment strategy.
+Use `tsx` to run `migrate.ts` directly from source, rather than compiling it to `dist/` and running with Node.
 
 Reason:
-- single `.env` load at startup, available to any module via `ConfigService` without re-importing
-- `@nestjs/config` wraps `dotenv` — no additional dependency
-- `isGlobal: true` removes the need to import `ConfigModule` in every feature module
-- environment variables can be added to `.env` incrementally as features are added
+- Migration runner is a standalone script, not part of the server bundle
+- Running from source means SQL files at `src/database/migrations/*.sql` are accessible via `__dirname`
+- No file-copying step needed to get `.sql` files into `dist/`
+- `tsx` is a dev dependency — not bundled into production; migrations are a pre-deployment step
+- Consistent with industry practice (ts-node/tsx for scripts, tsc for server bundles)
 
 ---
 
-## Decision 011
+## Decision 026 — Health endpoint includes DB connectivity check
 
-`pnpm.onlyBuiltDependencies` in root `package.json` to approve `@nestjs/core` postinstall.
+`GET /health` performs `SELECT 1` against the pg pool and returns `{ status: 'ok', db: 'connected' | 'disconnected' | 'not configured' }`.
 
 Reason:
-- pnpm 10 blocks all postinstall scripts by default for security
-- `@nestjs/core` postinstall is the `opencollective` donate notice — harmless
-- explicit allowlist in `package.json` is version-controlled and reproducible
-- avoids interactive `pnpm approve-builds` prompt in CI
+- Validates end-to-end stack health in a single HTTP call
+- Never throws — DB error caught internally, response is always `status: 'ok'` with degraded `db` field
+- `@Optional()` injection means the endpoint still works if DatabaseModule is not loaded
+- `HealthResponse` in shared updated with optional `db` field — backward-compatible (existing `{ status: 'ok' }` still satisfies the type)
 
 ---
 
-## Decision 012
+## Decision 027 — Add .nvmrc at monorepo root
 
-Use Next.js App Router (not Pages Router).
+Pin `20` in `.nvmrc` at the repository root.
 
 Reason:
-- App Router is the Next.js 13+ default and recommended approach
-- Server Components by default — better performance, smaller client bundles
-- Filesystem-based routing under `app/` is co-located and predictable
-- Pages Router is in maintenance mode; App Router is the investment path
+- Next.js 16 requires `>=20.9.0` — `.nvmrc` automates `nvm use 20` for all developers
+- Prevents "wrong Node version" errors in CI and on other machines
+- Single source of truth for the required Node version
 
 ---
 
-## Decision 013
+## Decision 028 — Docker Compose port 5433 for dev PostgreSQL
 
-Use Tailwind CSS v4 with `@tailwindcss/postcss`.
-
-Reason:
-- v4 eliminates `tailwind.config.ts` for default setups — less config surface
-- `@import "tailwindcss"` single-line CSS entry is cleaner than v3's three `@tailwind` directives
-- v4 uses Oxide (Rust engine) for faster builds than v3's Node.js engine
-- No JSX class annotation needed — content detection is automatic via Oxide
-
-Trade-off documented:
-- v4 requires `@tailwindcss/oxide-linux-x64-gnu` native binary — not auto-installed by pnpm as optional dep; must be installed explicitly in environments missing it
-
----
-
-## Decision 014
-
-Use `"module": "ESNext"` + `"moduleResolution": "Bundler"` for the frontend tsconfig.
+Map the dev PostgreSQL container to `localhost:5433` instead of the default `5432`.
 
 Reason:
-- Next.js uses SWC/webpack as the bundler — TypeScript is only used for type-checking, not compilation
-- `Bundler` resolution is the correct modern pairing for bundled browser code (not Node.js CJS)
-- `ESNext` module format signals to TypeScript that a bundler handles actual imports
-- `jsx: "preserve"` tells TypeScript to leave JSX as-is; Next.js/SWC transforms it
+- System PostgreSQL (Ubuntu package) is already bound to `127.0.0.1:5432` on this machine
+- Using `5433` avoids the port conflict without requiring system PostgreSQL to be stopped
+- `DB_PORT=5433` in `.env.example` documents this explicitly
 
----
-
-## Decision 015
-
-Set `outputFileTracingRoot` in `next.config.ts` to monorepo root.
-
-Reason:
-- Without this, Next.js incorrectly infers the workspace root from lockfile presence
-- `path.join(__dirname, '../../')` points to `serveflow-core/` root
-- Silences the "inferred workspace root may not be correct" warning
-- Ensures output file tracing (for deployment) follows the correct dependency graph
-
----
-
-## Decision 016
-
-Add `@tailwindcss/oxide-linux-x64-gnu` as an explicit dependency.
-
-Reason:
-- `@tailwindcss/oxide` lists `@tailwindcss/oxide-linux-x64-gnu` as an optional dependency
-- pnpm did not install it automatically (environmental/lockfile issue)
-- Tailwind v4 PostCSS processing fails without the native binding
-- Explicit installation is the reliable fix; documents the environment requirement
-
----
-
-## Decision 017
-
-Upgrade frontend from Node 18 compatibility to Node 20+ ecosystem with Next.js 16.
-
-Reason:
-- Node v20.19.2 runtime provides significant performance improvements over Node 18 (up to 30% faster cold starts, improved V8 optimizer)
-- Next.js 16 introduces Turbopack as the default bundler — production build times 5–10× faster than webpack
-- React 19.2.6 with concurrent features fully optimized for Node 20+ native APIs
-- Tailwind v4 with Oxide (Rust engine) leverages Node 20's improved native addon performance
-- Node 20 LTS support extends until April 2026 — longer security maintenance window than Node 18
-- ESM and import.meta fully stabilized in Node 20 — better ecosystem compatibility for future migrations
-
-Trade-offs:
-- Next.js 16 is a major version — requires verification after upgrade (typecheck + build + runtime)
-- Turbopack is now stable but ecosystem plugins may lag webpack compatibility
-
-Verified:
-- Node runtime: v20.19.2 ✓
-- Next.js: upgraded 15.5.18 → 16.2.6 ✓
-- React: 19.2.6 (already latest) ✓
-- Tailwind: 4.3.0 (already latest) ✓
-- TypeScript: compilation clean ✓
-- Build: successful with Turbopack in 3.6s ✓
-- App Router: fully preserved ✓
-
----
-
-## Decision 018
-
-Separate `tsconfig.json` (typecheck) and `tsconfig.build.json` (compilation) for `@serveflow/shared`.
-
-Reason:
-- `tsconfig.json` (noEmit: true) is used for IDE type-checking and `tsc --noEmit` — no output produced
-- `tsconfig.build.json` (composite: true, declaration: true, outDir: dist) is used for compilation only
-- Separation prevents the typecheck-only path from accidentally emitting files
-- `composite: true` is required on the build config for TypeScript project references to work
-- Backend references `packages/shared/tsconfig.build.json` explicitly — consuming only the build config
-- This pattern is idiomatic in TypeScript monorepos with mixed build/typecheck needs
-
----
-
-## Decision 019
-
-Backend uses `tsc --build` (project references build mode) instead of plain `tsc`.
-
-Reason:
-- `tsc --build` with project references checks if shared is stale before compiling backend
-- Incremental compilation via `.tsbuildinfo` — only recompiles changed files
-- Eliminates risk of backend building against stale shared declarations
-- Does not require changing backend's `composite` flag (backend is not referenced by other projects)
-- The `.tsbuildinfo` file is already covered by the root `.gitignore` (`tsconfig.tsbuildinfo`)
-
----
-
-## Decision 020
-
-Frontend does not use TypeScript project references for `@serveflow/shared`.
-
-Reason:
-- Frontend uses `moduleResolution: Bundler` — resolution is more permissive and does not use Node-style package.json `exports` strictly
-- Next.js/Turbopack handles all compilation; `tsc` on the frontend is typecheck-only (`noEmit: true`)
-- Bundler resolution follows workspace symlink → `package.json` → `types: dist/index.d.ts` naturally
-- Adding references to the frontend tsconfig would require `composite: true` on the frontend itself, which has no value since nothing references it
-- Simpler: frontend relies on the pre-built `dist/` from shared, available after `pnpm build:shared`
-
----
-
-## Decision 021
-
-Domain types are plain TypeScript interfaces — no framework coupling.
-
-Reason:
-- `@serveflow/shared` has zero framework dependencies (no NestJS, no React, no ORM)
-- Types can be safely imported by backend controllers, frontend components, future mobile apps, scripts, etc.
-- NestJS DTOs (for validation) will extend or reference these interfaces but live in the backend only
-- Database entity models (Phase 6) will map to these interfaces but live in the backend only
-- This is the single source of truth for the domain contract across the entire system
+Trade-off:
+- Diverges from PostgreSQL default port — must be set correctly in `.env`
+- Production/CI environments will typically use `5432` — their `.env` will override correctly
 
 ---
 
 # Future Precautions
 
 ## TS Config Deprecation
+- Always pair `module` and `moduleResolution` explicitly — defaults change across TS versions
+- Valid Node.js pairings: `Node16/Node16`, `NodeNext/NodeNext`
+- Valid browser/bundler pairings: `ESNext/Bundler`, `ES2022/Bundler`
 
-- Always explicitly set both `module` and `moduleResolution` together — never rely on TypeScript defaults; defaults are tied to legacy behavior and change across TS versions
-- Valid non-deprecated pairings for Node.js server code: `Node16/Node16`, `NodeNext/NodeNext`
-- Valid non-deprecated pairings for browser/bundler code: `ESNext/Bundler`, `ES2022/Bundler`
-- Never set `moduleResolution: Node` or `moduleResolution: node10` in new code
-- After any TypeScript major version upgrade, run `tsc --noEmit` across all packages and scan for new deprecation warnings before merging
-
-## Keeping Compiler Configs Modern
-
-- Pin the TypeScript version in root `package.json` and update deliberately — major TS releases sometimes tighten pairing validation (as seen with TS5110)
-- Each app package owns its own `tsconfig.json`; the base only holds target, lib, and strict flags — never module settings
-- When NestJS CLI generates a tsconfig in Phase 3, merge it onto our existing base rather than replacing it wholesale; NestJS defaults may re-introduce deprecated settings
-
-## Ecosystem Compatibility Before Upgrades
-
-- Before upgrading TypeScript: check NestJS compatibility matrix and verify their own `tsconfig.json` template for the target version
-- Before upgrading Node.js runtime: verify `module: Node16` target still reflects correct semantics (Node16 maps to Node.js ≥16 CJS/ESM hybrid behavior)
-- `NodeNext` is the forward-looking alias for "latest Node.js module behavior" — consider migrating from `Node16` to `NodeNext` when NestJS formally supports it
-
-## Environment-Specific npm/pnpm Registry Config
-
-- Never rely on global pnpm/npm registry config in a project; always provide a project-level `.npmrc`
-- Keep `.npmrc` in version control so all environments (CI, teammates, Codex) use the same registry
-- Local Verdaccio or Nexus registries are common in enterprise setups; the project `.npmrc` overrides them predictably
+## Ecosystem Compatibility
+- Before TypeScript major upgrades: check NestJS compatibility matrix
+- Before Node.js upgrades: verify `module: Node16` semantics still hold
 
 ## Node Version
-
-- Next.js 16 requires Node.js >=20.9.0 — always use `nvm use 20` before running frontend builds or `next dev`
-- Backend (NestJS) is compatible with Node 18+ but Node 20 is preferred for consistency
-- Add `.nvmrc` file at monorepo root in Phase 6 to automate this
+- Always `nvm use 20` before frontend builds (Next.js 16 requires `>=20.9.0`)
+- `.nvmrc` at root automates this for nvm users
 
 ## Shared Package Build Dependency
-
-- `@serveflow/shared` must be compiled (`pnpm build:shared`) before any app typecheck or build
-- Backend `tsc --build` handles this automatically via project references
-- Frontend `next build` and frontend `tsc --noEmit` require `dist/` to pre-exist — use `pnpm typecheck` (root) which runs `build:shared` first
-- In CI: add `pnpm build:shared` as the first build step before parallel app builds
+- `@serveflow/shared` must be compiled before any app typecheck or build
+- Backend `tsc --build` handles this automatically
+- Root `pnpm typecheck` runs `build:shared` first
 
 ## Domain Type Discipline
+- Keep `@serveflow/shared` free of framework imports permanently
+- NestJS DTOs extend shared types but live in backend only
+- Database entity mapping lives in repositories only
 
-- Keep `@serveflow/shared` types free of framework imports permanently
-- NestJS validation: create DTOs in backend that reference shared types (do not add `class-validator` to shared)
-- Database mapping: create entity classes in backend that implement shared interfaces (do not add TypeORM/Prisma to shared)
-- Frontend state: frontend components consume shared types directly — no adapter layer needed
+## Database
+- Parameterize all SQL queries — never string-interpolate user input
+- Keep repositories thin (DB access only); business logic belongs in services (Phase 7+)
+- Add `restaurant_id` to bookings table when restaurants table is introduced (Phase 9)
+- Connection pool max=10 is appropriate for Phase 6; tune when load increases
+- In CI: run `pnpm migrate` before starting the server in integration test pipelines
+- Migration files are append-only — never edit an applied migration; always add a new one
