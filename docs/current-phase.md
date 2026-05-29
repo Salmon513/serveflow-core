@@ -2,7 +2,7 @@
 
 ## Active Phase
 
-Phase 6 — PostgreSQL Integration
+Phase 7 — AI Foundation
 
 STATUS: COMPLETED
 
@@ -10,51 +10,54 @@ STATUS: COMPLETED
 
 # Current Objective
 
-Introduce durable persistence using PostgreSQL with a minimal, explicit SQL approach.
+Introduce a production-grade AI foundation layer with centralized OpenAI access,
+structured JSON outputs, DTO validation, and minimal frontend testing surfaces.
 
 ---
 
 # Completed Work
 
-## Phase 6 (this phase)
+## Phase 7 (this phase)
 
 ### Infrastructure
-- `.nvmrc` — pins Node 20 at monorepo root
-- `.env.example` — DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, PORT
-- `docker-compose.yml` — postgres:16-alpine on port 5433 (5432 reserved for system Postgres)
+- `.env.example` — adds `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TIMEOUT_MS`
+- `apps/backend/src/config/env.validation.ts` — validates DB + OpenAI env vars at startup
+- `package.json` — root build/typecheck now includes `@serveflow/prompts`
 
-### Database Layer
-- `apps/backend/src/database/database.provider.ts` — pg Pool factory via ConfigService; 10-connection pool
-- `apps/backend/src/database/database.module.ts` — exports Pool provider; imported by feature modules
+### Prompt Layer
+- `packages/prompts/` — promoted from stub to real workspace package
+- `packages/prompts/src/faq/faq.prompt.ts` — FAQ prompt definition
+- `packages/prompts/src/booking/booking-intent.prompt.ts` — booking intent prompt definition
+- `packages/prompts/src/shared/constraints.ts` — shared JSON-only prompt constraints
 
-### Migrations
-- `apps/backend/src/database/migrations/001_create_customers.sql` — customers table with UUID PK, phone unique constraint
-- `apps/backend/src/database/migrations/002_create_bookings.sql` — bookings table with FK to customers, status CHECK, party_size CHECK, indexes
-- `apps/backend/src/database/migrate.ts` — standalone migration runner (tsx); tracks applied migrations in schema_migrations; per-migration transactions with rollback on failure
+### Shared Contracts
+- `packages/shared/src/types/ai.ts` — FAQ + booking intent request/response contracts
+- `packages/shared/src/types/index.ts` — exports AI contracts
 
-### Repositories
-- `apps/backend/src/modules/customer/customer.repository.ts` — findById, findByPhone, create; maps snake_case rows to camelCase Customer type
-- `apps/backend/src/modules/customer/customer.module.ts` — imports DatabaseModule, exports CustomerRepository
-- `apps/backend/src/modules/booking/booking.repository.ts` — findById, findByCustomerId, create, updateStatus; maps rows to Booking type
-- `apps/backend/src/modules/booking/booking.module.ts` — imports DatabaseModule, exports BookingRepository
+### Backend AI Module
+- `apps/backend/src/modules/ai/ai.module.ts` — isolated AI module boundary
+- `apps/backend/src/modules/ai/providers/openai.provider.ts` — official OpenAI SDK client with centralized timeout + retry config
+- `apps/backend/src/modules/ai/ai.service.ts` — structured prompt execution, parsing, DTO validation, and error handling
+- `apps/backend/src/modules/ai/ai.controller.ts` — `POST /ai/faq` and `POST /ai/booking-intent`
+- `apps/backend/src/modules/ai/dto/` — request/response DTOs for FAQ and booking intent
+- `apps/backend/src/modules/ai/prompts/index.ts` — backend-local adapter into `@serveflow/prompts`
 
 ### Updated Files
-- `apps/backend/src/app.module.ts` — registers DatabaseModule, CustomerModule, BookingModule
-- `apps/backend/src/modules/health/health.module.ts` — imports DatabaseModule
-- `apps/backend/src/modules/health/health.service.ts` — async DB ping (SELECT 1); returns { status: 'ok', db: 'connected'|'disconnected'|'not configured' }
-- `apps/backend/src/modules/health/health.controller.ts` — async check()
-- `packages/shared/src/types/health-response.ts` — optional db field added (backward-compatible)
-- `apps/backend/package.json` — pg, dotenv deps; tsx devDep; migrate script
+- `apps/backend/src/app.module.ts` — registers `AiModule` and env validation
+- `apps/backend/package.json` — adds `openai`, `zod`, and `@serveflow/prompts`
+- `apps/backend/tsconfig.json` — references prompts package build config
+- `apps/frontend/app/page.tsx` — swaps placeholder page for AI tester UI
+- `apps/frontend/components/ai-tester.tsx` — minimal frontend-backend AI testing surface
 
 ### Verification
-- `pnpm migrate` — applied 001_create_customers, 002_create_bookings ✓
-- `pnpm migrate` (second run) — both skipped (idempotent) ✓
-- `GET /health` returns `{"status":"ok","db":"connected"}` ✓
-- Backend build: `tsc --build` clean ✓
-- Full typecheck: 0 errors across shared, backend, frontend ✓
+- `pnpm install` — workspace link for `@serveflow/prompts` established ✓
+- `pnpm typecheck` — shared, prompts, backend, frontend all clean ✓
+- `pnpm --filter @serveflow/backend build` — clean ✓
+- `pnpm --filter @serveflow/frontend build` under Node 20 — clean ✓
 
 ## Prior phases
 
+- Phase 6: PostgreSQL persistence, migrations, repositories
 - Phase 5: @serveflow/shared domain types, project references, build pipeline
 - Phase 4: Next.js 16.2.6 + Turbopack, Tailwind v4, App Router
 - Phase 3: NestJS 11 + Fastify backend, health endpoint
@@ -65,27 +68,29 @@ Introduce durable persistence using PostgreSQL with a minimal, explicit SQL appr
 
 # Current Repository State
 
-- Backend: NestJS 11 + Fastify + pg pool + CustomerRepository + BookingRepository
-- Health endpoint: `/health` → `{ status: 'ok', db: 'connected' }`
-- Migrations: customers + bookings tables, schema_migrations tracking
+- Backend: NestJS 11 + Fastify + pg pool + AI module + CustomerRepository + BookingRepository
+- AI endpoints: `/ai/faq` and `/ai/booking-intent`
+- Prompt package: centralized in `packages/prompts`
+- Frontend: single-page tester for backend health + Phase 7 AI endpoints
 - PostgreSQL: Docker postgres:16-alpine (port 5433) OR system PostgreSQL
-- No controllers for customer/booking yet — repositories ready to serve Phase 7 endpoints
+- No customer or booking controllers yet — repositories remain internal
 - No authentication
-- No AI integration yet
+- No WhatsApp integration yet
 
 ---
 
-# Migration Workflow
+# AI Workflow
 
 ```bash
-# Start PostgreSQL
-docker compose up -d
-
-# Copy .env and set DB credentials
+# Set backend env values, including OpenAI credentials
 cp .env.example apps/backend/.env
 
-# Run migrations
-pnpm --filter @serveflow/backend migrate
+# Start the backend
+pnpm --filter @serveflow/backend build
+pnpm --filter @serveflow/backend start
+
+# Start the frontend
+pnpm --filter @serveflow/frontend dev
 ```
 
 ---
@@ -104,19 +109,18 @@ pnpm typecheck      →  build:shared + pnpm -r typecheck
 
 # Next Recommended Action
 
-Execute Phase 7 — OpenAI Integration.
+Execute Phase 8 — WhatsApp Integration.
 
 Goals:
-- add OpenAI API client
-- centralized prompt management in packages/prompts
-- structured AI responses
-- AI service layer for menu Q&A, booking intent parsing, FAQ
+- add inbound webhook handling
+- validate and normalize WhatsApp payloads
+- route messages into the Phase 7 AI foundation
+- keep orchestration simple and explicit
 
 ---
 
 # Upcoming Phases
 
-- Phase 7 — OpenAI Integration
 - Phase 8 — WhatsApp Integration
 - Phase 9 — Booking Workflow MVP
 

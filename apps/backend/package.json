@@ -14,14 +14,17 @@
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-fastify": "^11.0.0",
+    "@serveflow/prompts": "workspace:*",
     "@serveflow/shared": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
     "dotenv": "^17.4.2",
     "fastify": "^5.0.0",
+    "openai": "^6.39.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.0"
+    "rxjs": "^7.8.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

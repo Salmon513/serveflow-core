@@ -88,9 +88,28 @@
 
 ---
 
+## Phase 7 — AI Foundation
+### Completed
+- [x] Promote `packages/prompts` from stub to real workspace package
+- [x] Add OpenAI environment variables to `.env.example`
+- [x] Add backend environment validation for DB + OpenAI variables
+- [x] Install official OpenAI SDK in backend
+- [x] Add centralized OpenAI provider with timeout + retry handling
+- [x] Create `modules/ai` with controller, service, constants, prompt adapter, and DTOs
+- [x] Add structured JSON response handling for FAQ and booking intent extraction
+- [x] Add shared AI request/response contracts in `@serveflow/shared`
+- [x] Create `POST /ai/faq`
+- [x] Create `POST /ai/booking-intent`
+- [x] Create minimal frontend AI tester UI
+- [x] Create `docs/ai/` documentation set
+- [x] Verify backend build clean
+- [x] Verify workspace typecheck clean
+- [x] Verify frontend production build under Node 20 clean
+
+---
+
 ## Future
 
-- Phase 7: OpenAI integration
 - Phase 8: WhatsApp integration
 - Phase 9: Booking workflow MVP
 - Phase 10: First deployable demo

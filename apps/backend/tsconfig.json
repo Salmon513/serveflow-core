@@ -13,6 +13,7 @@
   "include": ["src"],
   "exclude": ["dist", "node_modules"],
   "references": [
-    { "path": "../../packages/shared/tsconfig.build.json" }
+    { "path": "../../packages/shared/tsconfig.build.json" },
+    { "path": "../../packages/prompts/tsconfig.build.json" }
   ]
 }

@@ -2,7 +2,7 @@
 
 ## Current Stage
 
-Phase 6 — PostgreSQL Integration Completed.
+Phase 7 — AI Foundation Completed.
 
 Architecture style:
 modular monolith.
@@ -53,6 +53,16 @@ serveflow-core/
 │   │   │   │       └── 002_create_bookings.sql
 │   │   │   │
 │   │   │   └── modules/
+│   │   │       ├── ai/
+│   │   │       │   ├── ai.module.ts           # isolated AI module
+│   │   │       │   ├── ai.controller.ts       # POST /ai/faq, /ai/booking-intent
+│   │   │       │   ├── ai.service.ts          # centralized prompt execution + structured parsing
+│   │   │       │   ├── ai.constants.ts        # OpenAI tokens + defaults
+│   │   │       │   ├── ai.types.ts            # AI module internal execution types
+│   │   │       │   ├── dto/                   # request/response DTOs
+│   │   │       │   ├── prompts/               # adapter into @serveflow/prompts
+│   │   │       │   └── providers/
+│   │   │       │       └── openai.provider.ts # official OpenAI SDK client
 │   │   │       ├── health/
 │   │   │       │   ├── health.module.ts       # imports DatabaseModule
 │   │   │       │   ├── health.controller.ts   # GET /health → Promise<HealthResponse>
@@ -86,6 +96,7 @@ serveflow-core/
 │   │   │   └── types/
 │   │   │       ├── index.ts
 │   │   │       ├── health-response.ts  # { status: 'ok'; db?: '...' }
+│   │   │       ├── ai.ts               # FAQ + booking intent contracts
 │   │   │       ├── api-response.ts
 │   │   │       ├── booking.ts
 │   │   │       └── customer.ts
@@ -94,13 +105,58 @@ serveflow-core/
 │   │   ├── tsconfig.build.json
 │   │   └── package.json
 │   │
-│   ├── prompts/                        # stub (Phase 7)
+│   ├── prompts/                        # centralized prompt package
 │   └── configs/                        # stub (Phase 7)
 │
 ├── package.json                        # root scripts + pnpm.onlyBuiltDependencies
 ├── pnpm-workspace.yaml
 └── tsconfig.base.json
 ```
+
+---
+
+# AI Architecture
+
+## Dependency Graph
+
+```
+AppModule
+  ├── ConfigModule.forRoot({ validate: validateEnvironment, isGlobal: true })
+  ├── AiModule
+  │    ├── OPENAI_CLIENT provider → official OpenAI SDK client
+  │    ├── AiService              → structured prompt execution boundary
+  │    └── AiController           → /ai/faq, /ai/booking-intent
+  ├── DatabaseModule
+  ├── HealthModule
+  ├── CustomerModule
+  └── BookingModule
+```
+
+## Prompt Package
+
+Prompt definitions live in `packages/prompts`.
+
+This keeps:
+- prompt content versioned separately from NestJS module code
+- prompt review lightweight
+- business rules explicit in plain TypeScript
+
+The backend AI module imports prompt definitions through `modules/ai/prompts/`
+so the AI module still has a coherent local folder structure.
+
+## Structured Output Flow
+
+```
+HTTP request DTO
+  → AiController
+    → AiService
+      → OpenAI Responses API
+        → JSON-structured response
+          → DTO validation
+            → ApiResponse<T>
+```
+
+No raw model prose is used as an internal contract.
 
 ---
 
@@ -121,7 +177,8 @@ Pool is created once at app startup. Injected into repositories and HealthServic
 
 ```
 AppModule
-  ├── ConfigModule.forRoot({ isGlobal: true })
+  ├── ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment })
+  ├── AiModule
   ├── DatabaseModule  ──────────────────────────────┐ exports DATABASE_POOL
   ├── HealthModule    → imports DatabaseModule       │
   ├── CustomerModule  → imports DatabaseModule       │
@@ -272,8 +329,8 @@ pnpm --filter @serveflow/frontend dev
 
 # Next Architecture Decision
 
-Phase 7 — OpenAI Integration:
-- OpenAI API client setup (packages/prompts for centralized prompt management)
-- Structured output parsing for booking intent
-- AI service layer as a NestJS injectable
-- Prompt versioning strategy
+Phase 8 — WhatsApp Integration:
+- webhook controller boundary
+- payload validation strategy
+- handoff into Phase 7 AI services
+- minimal message orchestration without workflow engines

@@ -165,6 +165,58 @@ Trade-off:
 
 ---
 
+## Decision 029 — Official OpenAI SDK only for Phase 7
+
+Use the official `openai` Node SDK and the Responses API as the single model
+integration layer.
+
+Reason:
+- aligned with current OpenAI platform direction
+- first-party timeout and retry support
+- structured output support via the official SDK helpers
+- avoids abstraction layers before ServeFlow has multiple providers or modalities
+
+---
+
+## Decision 030 — Centralize prompt definitions in @serveflow/prompts
+
+Prompts live in a dedicated workspace package instead of being embedded directly
+inside services.
+
+Reason:
+- keeps prompt content versioned and reviewable
+- avoids string sprawl inside NestJS services
+- preserves a clean boundary between prompt content and execution code
+- still simple enough for this stage: plain TypeScript, no prompt framework
+
+---
+
+## Decision 031 — Structured JSON outputs only
+
+Phase 7 AI endpoints return structured JSON only, never raw text as an internal
+contract.
+
+Reason:
+- feature modules need deterministic payloads
+- DTO validation can reject malformed or incomplete model output
+- frontend testing is simpler when response shapes are stable
+- avoids fragile regex parsing of model prose
+
+---
+
+## Decision 032 — No AI overengineering in Phase 7
+
+Explicitly avoid LangChain, vector databases, RAG, agents, orchestration
+frameworks, embeddings infrastructure, and streaming in this phase.
+
+Reason:
+- current product maturity does not justify them
+- Phase 7 only needs two deterministic extraction/answering endpoints
+- simpler code is easier to debug with real customer traffic later
+- Phase 8 needs communication integration, not platform complexity
+
+---
+
 # Future Precautions
 
 ## TS Config Deprecation
