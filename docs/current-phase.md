@@ -2,7 +2,7 @@
 
 ## Active Phase
 
-Phase 7 — AI Foundation
+Phase 8 — Workflow Foundation
 
 STATUS: COMPLETED
 
@@ -10,53 +10,40 @@ STATUS: COMPLETED
 
 # Current Objective
 
-Introduce a production-grade AI foundation layer with centralized OpenAI access,
-structured JSON outputs, DTO validation, and minimal frontend testing surfaces.
+Introduce workflow orchestration that routes customer messages into business actions.
+Simple, explicit, readable — no workflow engines, no state machines, no queues.
 
 ---
 
 # Completed Work
 
-## Phase 7 (this phase)
-
-### Infrastructure
-- `.env.example` — adds `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_TIMEOUT_MS`
-- `apps/backend/src/config/env.validation.ts` — validates DB + OpenAI env vars at startup
-- `package.json` — root build/typecheck now includes `@serveflow/prompts`
-
-### Prompt Layer
-- `packages/prompts/` — promoted from stub to real workspace package
-- `packages/prompts/src/faq/faq.prompt.ts` — FAQ prompt definition
-- `packages/prompts/src/booking/booking-intent.prompt.ts` — booking intent prompt definition
-- `packages/prompts/src/shared/constraints.ts` — shared JSON-only prompt constraints
+## Phase 8 (this phase)
 
 ### Shared Contracts
-- `packages/shared/src/types/ai.ts` — FAQ + booking intent request/response contracts
-- `packages/shared/src/types/index.ts` — exports AI contracts
+- `packages/shared/src/types/workflow.ts` — `WorkflowType` union + `WorkflowResult` interface
+- `packages/shared/src/types/index.ts` — exports workflow contracts
 
-### Backend AI Module
-- `apps/backend/src/modules/ai/ai.module.ts` — isolated AI module boundary
-- `apps/backend/src/modules/ai/providers/openai.provider.ts` — official OpenAI SDK client with centralized timeout + retry config
-- `apps/backend/src/modules/ai/ai.service.ts` — structured prompt execution, parsing, DTO validation, and error handling
-- `apps/backend/src/modules/ai/ai.controller.ts` — `POST /ai/faq` and `POST /ai/booking-intent`
-- `apps/backend/src/modules/ai/dto/` — request/response DTOs for FAQ and booking intent
-- `apps/backend/src/modules/ai/prompts/index.ts` — backend-local adapter into `@serveflow/prompts`
+### Workflow Module
+- `apps/backend/src/modules/workflows/workflow.module.ts` — imports AiModule + BookingModule; exports WorkflowService
+- `apps/backend/src/modules/workflows/workflow.service.ts` — routes and delegates to handlers
+- `apps/backend/src/modules/workflows/workflow.router.ts` — keyword-based routing (booking / human_handoff / faq)
+- `apps/backend/src/modules/workflows/workflow.types.ts` — internal WorkflowInput type
+
+### Handlers
+- `handlers/faq.handler.ts` — delegates to AiService.answerFaq
+- `handlers/booking.handler.ts` — extracts intent via AiService, persists via BookingRepository if customerId present
+- `handlers/human-handoff.handler.ts` — returns `{ handoffRequired: true }`
 
 ### Updated Files
-- `apps/backend/src/app.module.ts` — registers `AiModule` and env validation
-- `apps/backend/package.json` — adds `openai`, `zod`, and `@serveflow/prompts`
-- `apps/backend/tsconfig.json` — references prompts package build config
-- `apps/frontend/app/page.tsx` — swaps placeholder page for AI tester UI
-- `apps/frontend/components/ai-tester.tsx` — minimal frontend-backend AI testing surface
+- `apps/backend/src/app.module.ts` — registers WorkflowModule
 
 ### Verification
-- `pnpm install` — workspace link for `@serveflow/prompts` established ✓
-- `pnpm typecheck` — shared, prompts, backend, frontend all clean ✓
+- `pnpm typecheck` — all packages clean ✓
 - `pnpm --filter @serveflow/backend build` — clean ✓
-- `pnpm --filter @serveflow/frontend build` under Node 20 — clean ✓
 
 ## Prior phases
 
+- Phase 7: AI provider abstraction + Gemini integration, structured outputs
 - Phase 6: PostgreSQL persistence, migrations, repositories
 - Phase 5: @serveflow/shared domain types, project references, build pipeline
 - Phase 4: Next.js 16.2.6 + Turbopack, Tailwind v4, App Router
@@ -68,61 +55,69 @@ structured JSON outputs, DTO validation, and minimal frontend testing surfaces.
 
 # Current Repository State
 
-- Backend: NestJS 11 + Fastify + pg pool + AI module + CustomerRepository + BookingRepository
-- AI endpoints: `/ai/faq` and `/ai/booking-intent`
+- Backend: NestJS 11 + Fastify + pg pool + AI module + WorkflowModule + CustomerRepository + BookingRepository
+- WorkflowService: routes customer messages → faq / booking / human_handoff handlers
+- AI endpoints: `/ai/faq` and `/ai/booking-intent` (direct AI access still available)
 - Prompt package: centralized in `packages/prompts`
-- Frontend: single-page tester for backend health + Phase 7 AI endpoints
+- Frontend: single-page tester for backend health + AI endpoints
 - PostgreSQL: Docker postgres:16-alpine (port 5433) OR system PostgreSQL
-- No customer or booking controllers yet — repositories remain internal
+- No WhatsApp integration yet (Phase 9)
+- No customer or booking HTTP controllers yet
 - No authentication
-- No WhatsApp integration yet
 
 ---
 
-# AI Workflow
+# Dependency Graph (updated)
 
-```bash
-# Set backend env values, including OpenAI credentials
-cp .env.example apps/backend/.env
-
-# Start the backend
-pnpm --filter @serveflow/backend build
-pnpm --filter @serveflow/backend start
-
-# Start the frontend
-pnpm --filter @serveflow/frontend dev
+```
+AppModule
+  ├── ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment })
+  ├── DatabaseModule  ──────────────────────────────┐ exports DATABASE_POOL
+  ├── AiModule        → exports AiService           │
+  ├── HealthModule    → imports DatabaseModule       │
+  ├── CustomerModule  → imports DatabaseModule       │
+  ├── BookingModule   → imports DatabaseModule  ─────┘
+  └── WorkflowModule  → imports AiModule + BookingModule
+        ├── WorkflowRouter   (keyword routing)
+        ├── FaqHandler       → AiService.answerFaq
+        ├── BookingHandler   → AiService.extractBookingIntent + BookingRepository.create
+        └── HumanHandoffHandler → { handoffRequired: true }
 ```
 
 ---
 
-# Build Order (unchanged)
+# Workflow Flow
 
 ```
-pnpm build:shared   →  tsc -p tsconfig.build.json  →  dist/
-pnpm build:backend  →  tsc --build                  →  dist/
-pnpm build:frontend →  next build                   →  .next/
-pnpm build          →  full orchestrated build
-pnpm typecheck      →  build:shared + pnpm -r typecheck
+WorkflowService.execute(WorkflowInput)
+  → WorkflowRouter.route(message)       → WorkflowType
+  → switch(workflowType)
+      'faq'          → FaqHandler       → AiService.answerFaq
+      'booking'      → BookingHandler   → AiService.extractBookingIntent → BookingRepository.create?
+      'human_handoff'→ HumanHandoffHandler → { handoffRequired: true }
+  → WorkflowResult { type, success, data }
 ```
 
 ---
 
 # Next Recommended Action
 
-Execute Phase 8 — WhatsApp Integration.
+Execute Phase 9 — WhatsApp Integration.
 
 Goals:
-- add inbound webhook handling
+- add inbound webhook controller
 - validate and normalize WhatsApp payloads
-- route messages into the Phase 7 AI foundation
-- keep orchestration simple and explicit
+- resolve customer from phone number (CustomerRepository)
+- route message into WorkflowService
+- send response back via WhatsApp API
 
 ---
 
 # Upcoming Phases
 
-- Phase 8 — WhatsApp Integration
-- Phase 9 — Booking Workflow MVP
+- Phase 9 — WhatsApp Integration
+- Phase 10 — First Deployable Demo
+- Phase 11 — Customer Validation
 
 ---
 

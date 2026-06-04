@@ -2,7 +2,7 @@
 
 ## Current Stage
 
-Phase 7 — AI Foundation Completed.
+Phase 8 — Workflow Foundation Completed.
 
 Architecture style:
 modular monolith.

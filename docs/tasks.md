@@ -108,8 +108,24 @@
 
 ---
 
+## Phase 8 — Workflow Foundation
+### Completed
+- [x] Add WorkflowType + WorkflowResult to @serveflow/shared
+- [x] Create workflow.types.ts — internal WorkflowInput type
+- [x] Create workflow.router.ts — keyword-based routing
+- [x] Create faq.handler.ts — delegates to AiService.answerFaq
+- [x] Create booking.handler.ts — intent extraction + conditional BookingRepository.create
+- [x] Create human-handoff.handler.ts — returns { handoffRequired: true }
+- [x] Create workflow.service.ts — routes input to handler
+- [x] Create workflow.module.ts — imports AiModule + BookingModule; exports WorkflowService
+- [x] Register WorkflowModule in AppModule
+- [x] pnpm typecheck — all packages clean ✓
+- [x] pnpm build (backend) — clean ✓
+
+---
+
 ## Future
 
-- Phase 8: WhatsApp integration
-- Phase 9: Booking workflow MVP
+- Phase 9: WhatsApp integration
 - Phase 10: First deployable demo
+- Phase 11: Customer validation

@@ -249,3 +249,43 @@ Reason:
 - Connection pool max=10 is appropriate for Phase 6; tune when load increases
 - In CI: run `pnpm migrate` before starting the server in integration test pipelines
 - Migration files are append-only — never edit an applied migration; always add a new one
+
+---
+
+## Decision 033 — Keyword-based routing in WorkflowRouter for Phase 8
+
+Use simple keyword matching to classify messages into workflow types rather than an AI classifier or rules engine.
+
+Reason:
+- zero latency overhead — no extra AI call per message
+- explicit and auditable — the keyword lists are readable by non-engineers
+- sufficient for Phase 8 validation; routing accuracy can be improved post-validation
+- keeps the AI budget predictable (one call per workflow, not two)
+
+Trade-off:
+- keyword matching is brittle for ambiguous messages
+- can be upgraded to AI-based intent routing in Phase 12 after real traffic data
+
+---
+
+## Decision 034 — Booking handler defers persistence when customerId is absent
+
+When `customerId` is not present in `WorkflowInput`, BookingHandler returns the extracted intent only without calling BookingRepository.create.
+
+Reason:
+- customer identity resolution requires WhatsApp phone number lookup (Phase 9)
+- the booking handler is still connected to the repository as required — it persists when it has enough data
+- avoids storing orphaned booking records with no customer FK
+- result shape (pendingCustomerResolution: true) communicates clearly what's missing to the caller
+
+---
+
+## Decision 035 — WorkflowResult.data typed as unknown
+
+`WorkflowResult` in `@serveflow/shared` uses `data: unknown` rather than a discriminated union.
+
+Reason:
+- each workflow type returns a different data shape
+- a discriminated union in shared would couple shared to backend-internal handler types
+- callers inspect `type` first, then cast/narrow `data` — which is the correct pattern for heterogeneous results
+- keeps shared contracts minimal per Phase 8 scope
