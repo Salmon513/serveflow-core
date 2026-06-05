@@ -7,6 +7,7 @@ import { HealthModule } from './modules/health/health.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { WorkflowModule } from './modules/workflows/workflow.module';
+import { WhatsappModule } from './modules/whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { WorkflowModule } from './modules/workflows/workflow.module';
     CustomerModule,
     BookingModule,
     WorkflowModule,
+    WhatsappModule,
   ],
 })
 export class AppModule {}

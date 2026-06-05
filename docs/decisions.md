@@ -280,6 +280,55 @@ Reason:
 
 ---
 
+## Decision 036 — WhatsApp module is a channel adapter, not a business module
+
+The WhatsApp module has one responsibility: translate the Meta webhook protocol
+into WorkflowService calls and translate WorkflowResult back into WhatsApp messages.
+
+Reason:
+- business logic (routing, AI, booking persistence) remains inside WorkflowService
+- a second channel (web chat, SMS) can reuse WorkflowService without touching WhatsApp code
+- payload parsing and Meta API specifics are fully isolated from domain code
+- testing workflows does not require a WhatsApp connection
+
+---
+
+## Decision 037 — POST /webhooks/whatsapp is fire-and-forget
+
+The controller returns HTTP 200 immediately without awaiting WorkflowService processing.
+
+Reason:
+- Meta retries on any non-200 response — awaiting processing risks timeouts and duplicate messages
+- all errors are caught and logged inside WhatsappService
+- a failed processing attempt still attempts to send an error message to the customer
+- this mirrors the standard pattern for all webhook receivers
+
+---
+
+## Decision 038 — Native fetch for WhatsApp Graph API calls
+
+Use Node 20 built-in `fetch` instead of axios or node-fetch for outbound WhatsApp API calls.
+
+Reason:
+- Node 20 ships fetch natively — no new dependency needed
+- call is simple (single POST, check status) — no need for an HTTP client library
+- consistent with the existing no-new-dependencies constraint
+
+---
+
+## Decision 039 — WorkflowResult.data accessed via Record<string, unknown> cast in WhatsApp module
+
+WhatsappService casts `result.data` to `Record<string, unknown>` rather than importing
+internal handler types from the workflow module.
+
+Reason:
+- importing BookingWorkflowData from booking.handler would couple the channel adapter
+  to workflow internals — violating module boundary
+- `data: unknown` in WorkflowResult is intentional (Decision 035)
+- the cast is safe: the switch on `result.type` ensures correct data shape per type
+
+---
+
 ## Decision 035 — WorkflowResult.data typed as unknown
 
 `WorkflowResult` in `@serveflow/shared` uses `data: unknown` rather than a discriminated union.

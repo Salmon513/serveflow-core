@@ -2,7 +2,7 @@
 
 ## Active Phase
 
-Phase 8 — Workflow Foundation
+Phase 9 — WhatsApp Integration
 
 STATUS: COMPLETED
 
@@ -10,14 +10,33 @@ STATUS: COMPLETED
 
 # Current Objective
 
-Introduce workflow orchestration that routes customer messages into business actions.
-Simple, explicit, readable — no workflow engines, no state machines, no queues.
+Connect ServeFlow to WhatsApp Business so real customer messages enter the workflow
+layer and receive responses. Establish the first production communication channel.
 
 ---
 
 # Completed Work
 
-## Phase 8 (this phase)
+## Phase 9 (this phase)
+
+### WhatsApp Module
+- `apps/backend/src/modules/whatsapp/whatsapp.types.ts` — internal payload types for Meta webhook
+- `apps/backend/src/modules/whatsapp/whatsapp.controller.ts` — GET (webhook verification) + POST (inbound messages)
+- `apps/backend/src/modules/whatsapp/whatsapp.service.ts` — customer resolution, workflow dispatch, response delivery
+- `apps/backend/src/modules/whatsapp/whatsapp.module.ts` — imports CustomerModule + WorkflowModule
+
+### Updated Files
+- `apps/backend/src/config/env.validation.ts` — adds WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN
+- `apps/backend/src/app.module.ts` — registers WhatsappModule
+- `apps/backend/.env` — placeholder WhatsApp env vars added
+
+### Verification
+- `pnpm typecheck` — all packages clean ✓
+- `pnpm --filter @serveflow/backend build` — clean ✓
+
+---
+
+## Phase 8 (previous)
 
 ### Shared Contracts
 - `packages/shared/src/types/workflow.ts` — `WorkflowType` union + `WorkflowResult` interface
@@ -43,6 +62,7 @@ Simple, explicit, readable — no workflow engines, no state machines, no queues
 
 ## Prior phases
 
+- Phase 8: Workflow orchestration layer (router + handlers + WorkflowService)
 - Phase 7: AI provider abstraction + Gemini integration, structured outputs
 - Phase 6: PostgreSQL persistence, migrations, repositories
 - Phase 5: @serveflow/shared domain types, project references, build pipeline
@@ -55,15 +75,17 @@ Simple, explicit, readable — no workflow engines, no state machines, no queues
 
 # Current Repository State
 
-- Backend: NestJS 11 + Fastify + pg pool + AI module + WorkflowModule + CustomerRepository + BookingRepository
+- Backend: NestJS 11 + Fastify + pg pool + AI module + WorkflowModule + WhatsappModule
+- WhatsappModule: channel adapter — receives Meta webhooks, resolves customers, dispatches to WorkflowService
 - WorkflowService: routes customer messages → faq / booking / human_handoff handlers
 - AI endpoints: `/ai/faq` and `/ai/booking-intent` (direct AI access still available)
+- WhatsApp endpoints: `GET /webhooks/whatsapp` (verification) + `POST /webhooks/whatsapp` (inbound)
 - Prompt package: centralized in `packages/prompts`
 - Frontend: single-page tester for backend health + AI endpoints
 - PostgreSQL: Docker postgres:16-alpine (port 5433) OR system PostgreSQL
-- No WhatsApp integration yet (Phase 9)
 - No customer or booking HTTP controllers yet
 - No authentication
+- No restaurant/menu DB tables yet (Phase 10+)
 
 ---
 
@@ -75,13 +97,17 @@ AppModule
   ├── DatabaseModule  ──────────────────────────────┐ exports DATABASE_POOL
   ├── AiModule        → exports AiService           │
   ├── HealthModule    → imports DatabaseModule       │
-  ├── CustomerModule  → imports DatabaseModule       │
-  ├── BookingModule   → imports DatabaseModule  ─────┘
-  └── WorkflowModule  → imports AiModule + BookingModule
-        ├── WorkflowRouter   (keyword routing)
-        ├── FaqHandler       → AiService.answerFaq
-        ├── BookingHandler   → AiService.extractBookingIntent + BookingRepository.create
-        └── HumanHandoffHandler → { handoffRequired: true }
+  ├── CustomerModule  → imports DatabaseModule  ─────┤ exports CustomerRepository
+  ├── BookingModule   → imports DatabaseModule  ─────┘ exports BookingRepository
+  ├── WorkflowModule  → imports AiModule + BookingModule
+  │     ├── WorkflowRouter   (keyword routing)
+  │     ├── FaqHandler       → AiService.answerFaq
+  │     ├── BookingHandler   → AiService.extractBookingIntent + BookingRepository.create
+  │     └── HumanHandoffHandler → { handoffRequired: true }
+  └── WhatsappModule  → imports CustomerModule + WorkflowModule
+        ├── WhatsappController  → GET /webhooks/whatsapp (verification)
+        │                       → POST /webhooks/whatsapp (inbound)
+        └── WhatsappService     → resolves customer → WorkflowService.execute → sendMessage
 ```
 
 ---
@@ -102,22 +128,21 @@ WorkflowService.execute(WorkflowInput)
 
 # Next Recommended Action
 
-Execute Phase 9 — WhatsApp Integration.
+Execute Phase 10 — First Deployable Demo.
 
 Goals:
-- add inbound webhook controller
-- validate and normalize WhatsApp payloads
-- resolve customer from phone number (CustomerRepository)
-- route message into WorkflowService
-- send response back via WhatsApp API
+- deploy backend to a public URL (Railway / Render / Fly.io)
+- configure Meta webhook URL to point at deployed backend
+- onboard one real restaurant with hardcoded context
+- validate end-to-end: WhatsApp message → AI response → booking in DB
 
 ---
 
 # Upcoming Phases
 
-- Phase 9 — WhatsApp Integration
 - Phase 10 — First Deployable Demo
-- Phase 11 — Customer Validation
+- Phase 11 — Restaurant Onboarding (restaurants + menus DB tables, admin API)
+- Phase 12 — Live Availability + Smart Booking
 
 ---
 

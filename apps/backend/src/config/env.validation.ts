@@ -8,6 +8,9 @@ interface EnvironmentShape {
   AI_PROVIDER: string;
   GEMINI_API_KEY: string;
   GEMINI_MODEL: string;
+  WHATSAPP_TOKEN: string;
+  WHATSAPP_PHONE_NUMBER_ID: string;
+  WHATSAPP_VERIFY_TOKEN: string;
 }
 
 function requireNonEmpty(name: string, value: unknown): string {
@@ -51,5 +54,8 @@ export function validateEnvironment(
       typeof config['GEMINI_MODEL'] === 'string' && config['GEMINI_MODEL'].trim()
         ? config['GEMINI_MODEL']
         : 'gemini-2.5-flash',
+    WHATSAPP_TOKEN: requireNonEmpty('WHATSAPP_TOKEN', config['WHATSAPP_TOKEN']),
+    WHATSAPP_PHONE_NUMBER_ID: requireNonEmpty('WHATSAPP_PHONE_NUMBER_ID', config['WHATSAPP_PHONE_NUMBER_ID']),
+    WHATSAPP_VERIFY_TOKEN: requireNonEmpty('WHATSAPP_VERIFY_TOKEN', config['WHATSAPP_VERIFY_TOKEN']),
   };
 }

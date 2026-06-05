@@ -124,8 +124,22 @@
 
 ---
 
+## Phase 9 — WhatsApp Integration
+### Completed
+- [x] Create whatsapp.types.ts — internal Meta webhook payload types
+- [x] Create whatsapp.service.ts — customer resolution, workflow dispatch, WhatsApp send
+- [x] Create whatsapp.controller.ts — GET (Meta verification) + POST (inbound messages)
+- [x] Create whatsapp.module.ts — imports CustomerModule + WorkflowModule
+- [x] Update env.validation.ts — WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN
+- [x] Register WhatsappModule in AppModule
+- [x] Add WhatsApp placeholder vars to apps/backend/.env
+- [x] pnpm typecheck — all packages clean ✓
+- [x] pnpm --filter @serveflow/backend build — clean ✓
+
+---
+
 ## Future
 
-- Phase 9: WhatsApp integration
 - Phase 10: First deployable demo
-- Phase 11: Customer validation
+- Phase 11: Restaurant onboarding (restaurants + menus tables, admin API)
+- Phase 12: Live availability + smart booking
