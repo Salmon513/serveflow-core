@@ -20,16 +20,17 @@ Do NOT introduce complexity before it is required.
 
 # Incremental Layering
 
-Build in phases:
+Build in controlled phases as defined in `docs/roadmap.md`.
 
-1. Foundation
-2. TypeScript shells
-3. Framework setup
-4. Database
-5. AI integration
-6. External integrations
-7. Deployments
-8. Productization
+General layering order:
+1. Foundation & structure
+2. Framework setup
+3. Persistence
+4. AI integration
+5. Workflow orchestration
+6. External channel adapters
+7. Reliability & state
+8. Deployment & productization
 
 ---
 

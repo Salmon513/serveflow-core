@@ -50,14 +50,14 @@ live channel traffic.
 
 ## Prior phases
 
-- Phase 8: workflow orchestration layer
-- Phase 7: AI provider abstraction + Gemini integration
-- Phase 6: PostgreSQL persistence + migrations + repositories
-- Phase 5: shared contracts + monorepo consistency
-- Phase 4: Next.js frontend foundation
-- Phase 3: NestJS backend foundation
-- Phase 2: TypeScript shells
-- Phase 1: monorepo foundation
+- Phase 8: Workflow Foundation
+- Phase 7: AI Provider Abstraction + Gemini Integration
+- Phase 6: PostgreSQL Integration
+- Phase 5: Shared Packages & Contracts
+- Phase 4: Next.js Frontend Setup
+- Phase 3: NestJS Backend Setup
+- Phase 2: TypeScript App Initialization
+- Phase 1: Monorepo Foundation
 
 ---
 
@@ -79,37 +79,8 @@ live channel traffic.
 
 # Roadmap Evolution
 
-## Original Assumption
-
-After WhatsApp integration, the next highest-value phase would be deployment.
-
-## Implementation Discovery
-
-Phase 9 revealed a missing foundational capability:
-
-- conversation persistence
-- session state
-- message history
-- idempotency
-- auditability
-
-## Resulting Adjustment
-
-Roadmap v2 inserts:
-
-`Phase 10 — Conversation Reliability Foundation`
-
-before:
-
-`Phase 11 — First Deployable Demo`
-
-This preserves the original roadmap philosophy while correcting the sequencing.
-
-Original roadmap anchors remain preserved:
-- Booking Workflow MVP
-- First Deployable Demo
-- Customer Validation
-- SaaS Evolution Planning
+The roadmap evolved after Phase 9. See `docs/adrs/001-roadmap-evolution-after-whatsapp-integration.md`
+for the full governance record and `docs/roadmap.md` for the authoritative phase sequence.
 
 ---
 
@@ -127,17 +98,9 @@ Goals:
 
 # Upcoming Phases
 
-- Phase 10 — Conversation Reliability Foundation
-- Phase 11 — First Deployable Demo
-- Phase 12 — Restaurant Context Model
-- Phase 13 — Guided Booking Sessions
-- Phase 14 — Operator Surface & Basic Auth
-- Phase 15 — Observability & Audit Trail
-- Phase 16 — Availability & Booking Rules
+See `docs/roadmap.md` for the authoritative Roadmap v2 phase sequence.
 
-Original roadmap business anchors:
-- Customer Validation begins with Phase 11 deployment
-- SaaS Evolution Planning remains intentionally later, after validation
+Next phase: Phase 10 — Conversation Reliability Foundation.
 
 ---
 

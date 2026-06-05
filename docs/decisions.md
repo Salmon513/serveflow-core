@@ -213,7 +213,7 @@ Reason:
 - current product maturity does not justify them
 - Phase 7 only needs two deterministic extraction/answering endpoints
 - simpler code is easier to debug with real customer traffic later
-- Phase 8 needs communication integration, not platform complexity
+- the next phases (workflow orchestration, then channel integration) need simplicity, not platform complexity
 
 ---
 
@@ -252,14 +252,14 @@ Reason:
 
 ---
 
-## Decision 033 — Keyword-based routing in WorkflowRouter for Phase 8
+## Decision 033 — Keyword-based routing in WorkflowRouter
 
 Use simple keyword matching to classify messages into workflow types rather than an AI classifier or rules engine.
 
 Reason:
 - zero latency overhead — no extra AI call per message
 - explicit and auditable — the keyword lists are readable by non-engineers
-- sufficient for Phase 8 validation; routing accuracy can be improved post-validation
+- sufficient for initial validation; routing accuracy can be improved post-validation
 - keeps the AI budget predictable (one call per workflow, not two)
 
 Trade-off:
@@ -268,43 +268,27 @@ Trade-off:
 
 ---
 
-## Decision 040 — Roadmap v2 inserts Conversation Reliability before deployment
-
-The original roadmap was preserved through Phase 9 and then evolved after the
-WhatsApp adapter was implemented.
-
-Reason:
-- the original sequencing assumed deployment could happen immediately after the
-  first real channel existed
-- implementation revealed a missing foundation: conversation persistence,
-  session management, message history, idempotency, and auditability
-- this gap only became obvious once inbound webhook traffic and multi-turn
-  workflow behavior were visible in the actual codebase
-
-Decision:
-- keep completed phases unchanged
-- insert `Phase 10 — Conversation Reliability Foundation`
-- move deployment to `Phase 11 — First Deployable Demo`
-- keep the future roadmap adjustment conservative rather than rewriting the
-  entire product sequence
-- preserve the original future business anchors: Booking Workflow MVP,
-  Customer Validation, and SaaS Evolution Planning
-- treat `docs/roadmap.md` as the authoritative Roadmap v2 document
-
-Reference:
-- see `docs/adrs/001-roadmap-evolution-after-whatsapp-integration.md`
-
----
-
 ## Decision 034 — Booking handler defers persistence when customerId is absent
 
 When `customerId` is not present in `WorkflowInput`, BookingHandler returns the extracted intent only without calling BookingRepository.create.
 
 Reason:
-- customer identity resolution requires WhatsApp phone number lookup (Phase 9)
+- customer identity resolution requires the WhatsApp phone number lookup path
 - the booking handler is still connected to the repository as required — it persists when it has enough data
 - avoids storing orphaned booking records with no customer FK
 - result shape (pendingCustomerResolution: true) communicates clearly what's missing to the caller
+
+---
+
+## Decision 035 — WorkflowResult.data typed as unknown
+
+`WorkflowResult` in `@serveflow/shared` uses `data: unknown` rather than a discriminated union.
+
+Reason:
+- each workflow type returns a different data shape
+- a discriminated union in shared would couple shared to backend-internal handler types
+- callers inspect `type` first, then cast/narrow `data` — which is the correct pattern for heterogeneous results
+- keeps shared contracts minimal
 
 ---
 
@@ -357,12 +341,26 @@ Reason:
 
 ---
 
-## Decision 035 — WorkflowResult.data typed as unknown
+## Decision 040 — Roadmap v2 inserts Conversation Reliability before deployment
 
-`WorkflowResult` in `@serveflow/shared` uses `data: unknown` rather than a discriminated union.
+The original roadmap was preserved through Phase 9 and then evolved after the
+WhatsApp adapter was implemented.
 
 Reason:
-- each workflow type returns a different data shape
-- a discriminated union in shared would couple shared to backend-internal handler types
-- callers inspect `type` first, then cast/narrow `data` — which is the correct pattern for heterogeneous results
-- keeps shared contracts minimal per Phase 8 scope
+- the original sequencing assumed deployment could happen immediately after the
+  first real channel existed
+- implementation revealed a missing foundation: conversation persistence,
+  session management, message history, idempotency, and auditability
+- this gap only became obvious once inbound webhook traffic and multi-turn
+  workflow behavior were visible in the actual codebase
+
+Decision:
+- keep completed phases unchanged
+- insert `Phase 10 — Conversation Reliability Foundation`
+- move deployment to `Phase 11 — First Deployable Demo`
+- keep the future roadmap adjustment conservative rather than rewriting the
+  entire product sequence
+- treat `docs/roadmap.md` as the authoritative Roadmap v2 document
+
+Reference:
+- see `docs/adrs/001-roadmap-evolution-after-whatsapp-integration.md`

@@ -2,7 +2,7 @@
 
 ## Current Stage
 
-Phase 9 — WhatsApp Integration Completed.
+Phase 9 completed. See `docs/roadmap.md` for the authoritative phase sequence.
 
 Architecture style:
 modular monolith.
@@ -42,7 +42,7 @@ serveflow-core/
 │   ├── backend/
 │   │   ├── src/
 │   │   │   ├── main.ts                 # NestJS/Fastify bootstrap + ValidationPipe
-│   │   │   ├── app.module.ts           # ConfigModule + DatabaseModule + HealthModule + CustomerModule + BookingModule
+│   │   │   ├── app.module.ts           # ConfigModule + all feature modules
 │   │   │   │
 │   │   │   ├── database/
 │   │   │   │   ├── database.provider.ts    # DATABASE_POOL token + pg Pool factory
@@ -70,9 +70,20 @@ serveflow-core/
 │   │   │       ├── customer/
 │   │   │       │   ├── customer.module.ts     # imports DatabaseModule, exports CustomerRepository
 │   │   │       │   └── customer.repository.ts # findById, findByPhone, create
-│   │   │       └── booking/
-│   │   │           ├── booking.module.ts      # imports DatabaseModule, exports BookingRepository
-│   │   │           └── booking.repository.ts  # findById, findByCustomerId, create, updateStatus
+│   │   │       ├── booking/
+│   │   │       │   ├── booking.module.ts      # imports DatabaseModule, exports BookingRepository
+│   │   │       │   └── booking.repository.ts  # findById, findByCustomerId, create, updateStatus
+│   │   │       ├── workflows/
+│   │   │       │   ├── workflow.module.ts      # imports AiModule + BookingModule
+│   │   │       │   ├── workflow.service.ts     # single entry point for business workflows
+│   │   │       │   ├── workflow.router.ts      # keyword-based message classification
+│   │   │       │   ├── workflow.types.ts       # internal WorkflowInput type
+│   │   │       │   └── handlers/              # faq, booking, human-handoff handlers
+│   │   │       └── whatsapp/
+│   │   │           ├── whatsapp.module.ts     # channel adapter — imports CustomerModule + WorkflowModule
+│   │   │           ├── whatsapp.controller.ts # GET + POST /webhooks/whatsapp
+│   │   │           ├── whatsapp.service.ts    # customer resolution, workflow dispatch, send
+│   │   │           └── whatsapp.types.ts      # internal Meta webhook payload types
 │   │   │
 │   │   ├── .env                        # local DB credentials (gitignored)
 │   │   ├── dist/
@@ -122,14 +133,22 @@ serveflow-core/
 ```
 AppModule
   ├── ConfigModule.forRoot({ validate: validateEnvironment, isGlobal: true })
-  ├── AiModule
-  │    ├── OPENAI_CLIENT provider → official OpenAI SDK client
-  │    ├── AiService              → structured prompt execution boundary
-  │    └── AiController           → /ai/faq, /ai/booking-intent
-  ├── DatabaseModule
-  ├── HealthModule
-  ├── CustomerModule
-  └── BookingModule
+  ├── DatabaseModule  → exports DATABASE_POOL
+  ├── AiModule        → exports AiService
+  │    ├── AI_PROVIDER provider → Gemini (OpenAI-compatible SDK)
+  │    ├── AiService            → structured prompt execution boundary
+  │    └── AiController         → /ai/faq, /ai/booking-intent
+  ├── HealthModule    → imports DatabaseModule
+  ├── CustomerModule  → imports DatabaseModule, exports CustomerRepository
+  ├── BookingModule   → imports DatabaseModule, exports BookingRepository
+  ├── WorkflowModule  → imports AiModule + BookingModule, exports WorkflowService
+  │    ├── WorkflowRouter         → keyword-based message classification
+  │    ├── FaqHandler             → AiService.answerFaq
+  │    ├── BookingHandler         → AiService.extractBookingIntent + BookingRepository.create
+  │    └── HumanHandoffHandler    → { handoffRequired: true }
+  └── WhatsappModule  → imports CustomerModule + WorkflowModule
+       ├── WhatsappController     → GET + POST /webhooks/whatsapp
+       └── WhatsappService        → customer resolution → WorkflowService → sendMessage
 ```
 
 ## Prompt Package
@@ -178,11 +197,13 @@ Pool is created once at app startup. Injected into repositories and HealthServic
 ```
 AppModule
   ├── ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment })
-  ├── AiModule
   ├── DatabaseModule  ──────────────────────────────┐ exports DATABASE_POOL
+  ├── AiModule        → exports AiService           │
   ├── HealthModule    → imports DatabaseModule       │
-  ├── CustomerModule  → imports DatabaseModule       │
-  └── BookingModule   → imports DatabaseModule  ─────┘
+  ├── CustomerModule  → imports DatabaseModule  ─────┤ exports CustomerRepository
+  ├── BookingModule   → imports DatabaseModule  ─────┘ exports BookingRepository
+  ├── WorkflowModule  → imports AiModule + BookingModule
+  └── WhatsappModule  → imports CustomerModule + WorkflowModule
 ```
 
 ## Repository Pattern
@@ -270,10 +291,13 @@ main.ts
 
 AppModule
   ├── ConfigModule.forRoot({ isGlobal: true })
-  ├── DatabaseModule → exports pg Pool (DATABASE_POOL token)
-  ├── HealthModule → HealthController GET /health → { status: 'ok', db: 'connected' }
-  ├── CustomerModule → CustomerRepository (findById, findByPhone, create)
-  └── BookingModule  → BookingRepository (findById, findByCustomerId, create, updateStatus)
+  ├── DatabaseModule   → exports pg Pool (DATABASE_POOL token)
+  ├── AiModule         → AiService + AiController
+  ├── HealthModule     → HealthController GET /health
+  ├── CustomerModule   → CustomerRepository
+  ├── BookingModule    → BookingRepository
+  ├── WorkflowModule   → WorkflowService (single business entry point)
+  └── WhatsappModule   → WhatsappController GET+POST /webhooks/whatsapp
 ```
 
 ---
@@ -327,39 +351,15 @@ pnpm --filter @serveflow/frontend dev
 
 ---
 
-# Roadmap Evolution Note
+# Roadmap
 
-The original roadmap planned deployment immediately after WhatsApp integration.
+See `docs/roadmap.md` for the authoritative Roadmap v2 phase sequence.
 
-Implementation changed that sequencing.
-
-Why:
-- the first real channel exposed the need for durable conversation state
-- webhook retries create duplicate-processing risk
-- multi-turn workflows require session boundaries
-- operational support requires message history and auditability
-
-Result:
-- Roadmap v2 inserts `Phase 10 — Conversation Reliability Foundation`
-- deployment is now Phase 11, after minimum reliability boundaries exist
-
-This is an intentional roadmap evolution driven by implementation evidence, not
-by architectural overreach.
-
-Completed phase history remains unchanged.
-Original business roadmap anchors also remain unchanged in intent:
-- Booking Workflow MVP
-- First Deployable Demo
-- Customer Validation
-- SaaS Evolution Planning
+See `docs/adrs/001-roadmap-evolution-after-whatsapp-integration.md` for the
+governance record explaining why the roadmap evolved after Phase 9.
 
 ---
 
 # Next Architecture Decision
 
-Phase 10 — Conversation Reliability Foundation:
-- conversation persistence boundary
-- session ownership model
-- message history structure
-- idempotent inbound processing
-- audit trail scope before deployment
+See Phase 10 in `docs/roadmap.md` — Conversation Reliability Foundation.

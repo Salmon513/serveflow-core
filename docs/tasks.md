@@ -88,7 +88,7 @@
 
 ---
 
-## Phase 7 — AI Foundation
+## Phase 7 — AI Provider Abstraction + Gemini Integration
 ### Completed
 - [x] Promote `packages/prompts` from stub to real workspace package
 - [x] Add OpenAI environment variables to `.env.example`
@@ -140,15 +140,6 @@
 
 ## Future
 
-- Roadmap v2 is now the authoritative future-phase plan
-- Phase 10: Conversation reliability foundation
-- Phase 11: First deployable demo
-- Phase 12: Restaurant context model
-- Phase 13: Guided booking sessions
-- Phase 14: Operator surface + basic auth
-- Phase 15: Observability + audit trail
-- Phase 16: Availability + booking rules
-- Preserve original roadmap anchors in future planning:
-- Booking Workflow MVP
-- Customer Validation
-- SaaS Evolution Planning
+See `docs/roadmap.md` for the authoritative Roadmap v2 phase sequence.
+
+Next phase: Phase 10 — Conversation Reliability Foundation.
