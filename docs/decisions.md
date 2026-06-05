@@ -75,7 +75,7 @@ Reason:
 - Full control over query shape, indexes, and RETURNING clauses
 - No ORM migration lock-in — raw `.sql` files are portable and version-controllable
 - pg is the reference PostgreSQL client for Node.js — stable, minimal, battle-tested
-- Can adopt TypeORM or Drizzle in Phase 12 (SaaS evolution) if query complexity justifies it
+- Can adopt TypeORM or Drizzle in a much later productization phase if query complexity justifies it
 
 Trade-off:
 - More boilerplate per query vs ORM
@@ -96,7 +96,7 @@ Reason:
 - Idempotent by design — safe to re-run at any time
 
 Trade-off:
-- No automatic rollback scripts (up-only) — acceptable for Phase 6; add down migrations in Phase 12 if needed
+- No automatic rollback scripts (up-only) — acceptable for Phase 6; add down migrations later if operational complexity justifies it
 - No out-of-order migration detection — file naming convention enforces order
 
 ---
@@ -264,7 +264,35 @@ Reason:
 
 Trade-off:
 - keyword matching is brittle for ambiguous messages
-- can be upgraded to AI-based intent routing in Phase 12 after real traffic data
+- can be upgraded to AI-based intent routing later after real traffic data justifies it
+
+---
+
+## Decision 040 — Roadmap v2 inserts Conversation Reliability before deployment
+
+The original roadmap was preserved through Phase 9 and then evolved after the
+WhatsApp adapter was implemented.
+
+Reason:
+- the original sequencing assumed deployment could happen immediately after the
+  first real channel existed
+- implementation revealed a missing foundation: conversation persistence,
+  session management, message history, idempotency, and auditability
+- this gap only became obvious once inbound webhook traffic and multi-turn
+  workflow behavior were visible in the actual codebase
+
+Decision:
+- keep completed phases unchanged
+- insert `Phase 10 — Conversation Reliability Foundation`
+- move deployment to `Phase 11 — First Deployable Demo`
+- keep the future roadmap adjustment conservative rather than rewriting the
+  entire product sequence
+- preserve the original future business anchors: Booking Workflow MVP,
+  Customer Validation, and SaaS Evolution Planning
+- treat `docs/roadmap.md` as the authoritative Roadmap v2 document
+
+Reference:
+- see `docs/adrs/001-roadmap-evolution-after-whatsapp-integration.md`
 
 ---
 

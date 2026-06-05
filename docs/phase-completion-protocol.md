@@ -40,6 +40,7 @@ Requirements:
 - mark completed tasks
 - update active phase
 - define next phase
+- keep all future phases aligned with Roadmap v2 in `docs/roadmap.md`
 - preserve architectural consistency
 
 ---

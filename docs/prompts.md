@@ -18,6 +18,7 @@ Then:
 - summarize current state
 - identify active phase
 - identify next recommended step
+- follow Roadmap v2 in `docs/roadmap.md`
 - preserve architectural consistency
 - avoid premature complexity
 

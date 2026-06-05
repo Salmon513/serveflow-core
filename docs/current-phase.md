@@ -6,12 +6,26 @@ Phase 9 — WhatsApp Integration
 
 STATUS: COMPLETED
 
+Roadmap status:
+- Roadmap v2 is now active
+- future development must follow `docs/roadmap.md`
+- the next phase changed intentionally after implementation review
+
 ---
 
 # Current Objective
 
-Connect ServeFlow to WhatsApp Business so real customer messages enter the workflow
-layer and receive responses. Establish the first production communication channel.
+Phases 1–9 established the first end-to-end customer channel:
+
+- incoming WhatsApp message
+- workflow routing
+- AI response path
+- booking persistence path
+
+The next objective is no longer direct deployment.
+
+The next objective is to add the minimum reliability foundation required for
+live channel traffic.
 
 ---
 
@@ -34,40 +48,14 @@ layer and receive responses. Establish the first production communication channe
 - `pnpm typecheck` — all packages clean ✓
 - `pnpm --filter @serveflow/backend build` — clean ✓
 
----
-
-## Phase 8 (previous)
-
-### Shared Contracts
-- `packages/shared/src/types/workflow.ts` — `WorkflowType` union + `WorkflowResult` interface
-- `packages/shared/src/types/index.ts` — exports workflow contracts
-
-### Workflow Module
-- `apps/backend/src/modules/workflows/workflow.module.ts` — imports AiModule + BookingModule; exports WorkflowService
-- `apps/backend/src/modules/workflows/workflow.service.ts` — routes and delegates to handlers
-- `apps/backend/src/modules/workflows/workflow.router.ts` — keyword-based routing (booking / human_handoff / faq)
-- `apps/backend/src/modules/workflows/workflow.types.ts` — internal WorkflowInput type
-
-### Handlers
-- `handlers/faq.handler.ts` — delegates to AiService.answerFaq
-- `handlers/booking.handler.ts` — extracts intent via AiService, persists via BookingRepository if customerId present
-- `handlers/human-handoff.handler.ts` — returns `{ handoffRequired: true }`
-
-### Updated Files
-- `apps/backend/src/app.module.ts` — registers WorkflowModule
-
-### Verification
-- `pnpm typecheck` — all packages clean ✓
-- `pnpm --filter @serveflow/backend build` — clean ✓
-
 ## Prior phases
 
-- Phase 8: Workflow orchestration layer (router + handlers + WorkflowService)
-- Phase 7: AI provider abstraction + Gemini integration, structured outputs
-- Phase 6: PostgreSQL persistence, migrations, repositories
-- Phase 5: @serveflow/shared domain types, project references, build pipeline
-- Phase 4: Next.js 16.2.6 + Turbopack, Tailwind v4, App Router
-- Phase 3: NestJS 11 + Fastify backend, health endpoint
+- Phase 8: workflow orchestration layer
+- Phase 7: AI provider abstraction + Gemini integration
+- Phase 6: PostgreSQL persistence + migrations + repositories
+- Phase 5: shared contracts + monorepo consistency
+- Phase 4: Next.js frontend foundation
+- Phase 3: NestJS backend foundation
 - Phase 2: TypeScript shells
 - Phase 1: monorepo foundation
 
@@ -76,73 +64,80 @@ layer and receive responses. Establish the first production communication channe
 # Current Repository State
 
 - Backend: NestJS 11 + Fastify + pg pool + AI module + WorkflowModule + WhatsappModule
-- WhatsappModule: channel adapter — receives Meta webhooks, resolves customers, dispatches to WorkflowService
-- WorkflowService: routes customer messages → faq / booking / human_handoff handlers
-- AI endpoints: `/ai/faq` and `/ai/booking-intent` (direct AI access still available)
-- WhatsApp endpoints: `GET /webhooks/whatsapp` (verification) + `POST /webhooks/whatsapp` (inbound)
+- WhatsApp is the first real external channel adapter
+- WorkflowService still operates on single-message inputs, not durable conversations
+- AI endpoints: `/ai/faq` and `/ai/booking-intent`
+- WhatsApp endpoints: `GET /webhooks/whatsapp` + `POST /webhooks/whatsapp`
 - Prompt package: centralized in `packages/prompts`
 - Frontend: single-page tester for backend health + AI endpoints
-- PostgreSQL: Docker postgres:16-alpine (port 5433) OR system PostgreSQL
-- No customer or booking HTTP controllers yet
-- No authentication
-- No restaurant/menu DB tables yet (Phase 10+)
+- PostgreSQL: customers + bookings tables only
+- No conversation/session/message persistence yet
+- No restaurant/menu DB tables yet
+- No operator/admin product surface yet
 
 ---
 
-# Dependency Graph (updated)
+# Roadmap Evolution
 
-```
-AppModule
-  ├── ConfigModule.forRoot({ isGlobal: true, validate: validateEnvironment })
-  ├── DatabaseModule  ──────────────────────────────┐ exports DATABASE_POOL
-  ├── AiModule        → exports AiService           │
-  ├── HealthModule    → imports DatabaseModule       │
-  ├── CustomerModule  → imports DatabaseModule  ─────┤ exports CustomerRepository
-  ├── BookingModule   → imports DatabaseModule  ─────┘ exports BookingRepository
-  ├── WorkflowModule  → imports AiModule + BookingModule
-  │     ├── WorkflowRouter   (keyword routing)
-  │     ├── FaqHandler       → AiService.answerFaq
-  │     ├── BookingHandler   → AiService.extractBookingIntent + BookingRepository.create
-  │     └── HumanHandoffHandler → { handoffRequired: true }
-  └── WhatsappModule  → imports CustomerModule + WorkflowModule
-        ├── WhatsappController  → GET /webhooks/whatsapp (verification)
-        │                       → POST /webhooks/whatsapp (inbound)
-        └── WhatsappService     → resolves customer → WorkflowService.execute → sendMessage
-```
+## Original Assumption
 
----
+After WhatsApp integration, the next highest-value phase would be deployment.
 
-# Workflow Flow
+## Implementation Discovery
 
-```
-WorkflowService.execute(WorkflowInput)
-  → WorkflowRouter.route(message)       → WorkflowType
-  → switch(workflowType)
-      'faq'          → FaqHandler       → AiService.answerFaq
-      'booking'      → BookingHandler   → AiService.extractBookingIntent → BookingRepository.create?
-      'human_handoff'→ HumanHandoffHandler → { handoffRequired: true }
-  → WorkflowResult { type, success, data }
-```
+Phase 9 revealed a missing foundational capability:
+
+- conversation persistence
+- session state
+- message history
+- idempotency
+- auditability
+
+## Resulting Adjustment
+
+Roadmap v2 inserts:
+
+`Phase 10 — Conversation Reliability Foundation`
+
+before:
+
+`Phase 11 — First Deployable Demo`
+
+This preserves the original roadmap philosophy while correcting the sequencing.
+
+Original roadmap anchors remain preserved:
+- Booking Workflow MVP
+- First Deployable Demo
+- Customer Validation
+- SaaS Evolution Planning
 
 ---
 
 # Next Recommended Action
 
-Execute Phase 10 — First Deployable Demo.
+Execute Phase 10 — Conversation Reliability Foundation.
 
 Goals:
-- deploy backend to a public URL (Railway / Render / Fly.io)
-- configure Meta webhook URL to point at deployed backend
-- onboard one real restaurant with hardcoded context
-- validate end-to-end: WhatsApp message → AI response → booking in DB
+- make inbound/outbound conversations durable
+- introduce session-aware workflow state
+- add retry-safe message processing boundaries
+- create the minimum audit trail needed before live deployment
 
 ---
 
 # Upcoming Phases
 
-- Phase 10 — First Deployable Demo
-- Phase 11 — Restaurant Onboarding (restaurants + menus DB tables, admin API)
-- Phase 12 — Live Availability + Smart Booking
+- Phase 10 — Conversation Reliability Foundation
+- Phase 11 — First Deployable Demo
+- Phase 12 — Restaurant Context Model
+- Phase 13 — Guided Booking Sessions
+- Phase 14 — Operator Surface & Basic Auth
+- Phase 15 — Observability & Audit Trail
+- Phase 16 — Availability & Booking Rules
+
+Original roadmap business anchors:
+- Customer Validation begins with Phase 11 deployment
+- SaaS Evolution Planning remains intentionally later, after validation
 
 ---
 
@@ -155,3 +150,4 @@ Optimize for:
 - clarity
 - maintainability
 - learning velocity
+- evidence-driven roadmap evolution

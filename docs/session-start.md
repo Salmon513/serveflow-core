@@ -29,6 +29,7 @@ Then:
 8. Avoid repeating already completed work
 9. Preserve long-term maintainability
 10. Keep the architecture intentionally simple
+11. Treat `docs/roadmap.md` as the authoritative Roadmap v2 source for all future phases
 
 Important:
 This project follows controlled architectural layering.

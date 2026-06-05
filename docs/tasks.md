@@ -140,6 +140,15 @@
 
 ## Future
 
-- Phase 10: First deployable demo
-- Phase 11: Restaurant onboarding (restaurants + menus tables, admin API)
-- Phase 12: Live availability + smart booking
+- Roadmap v2 is now the authoritative future-phase plan
+- Phase 10: Conversation reliability foundation
+- Phase 11: First deployable demo
+- Phase 12: Restaurant context model
+- Phase 13: Guided booking sessions
+- Phase 14: Operator surface + basic auth
+- Phase 15: Observability + audit trail
+- Phase 16: Availability + booking rules
+- Preserve original roadmap anchors in future planning:
+- Booking Workflow MVP
+- Customer Validation
+- SaaS Evolution Planning

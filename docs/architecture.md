@@ -2,7 +2,7 @@
 
 ## Current Stage
 
-Phase 8 — Workflow Foundation Completed.
+Phase 9 — WhatsApp Integration Completed.
 
 Architecture style:
 modular monolith.
@@ -327,10 +327,39 @@ pnpm --filter @serveflow/frontend dev
 
 ---
 
+# Roadmap Evolution Note
+
+The original roadmap planned deployment immediately after WhatsApp integration.
+
+Implementation changed that sequencing.
+
+Why:
+- the first real channel exposed the need for durable conversation state
+- webhook retries create duplicate-processing risk
+- multi-turn workflows require session boundaries
+- operational support requires message history and auditability
+
+Result:
+- Roadmap v2 inserts `Phase 10 — Conversation Reliability Foundation`
+- deployment is now Phase 11, after minimum reliability boundaries exist
+
+This is an intentional roadmap evolution driven by implementation evidence, not
+by architectural overreach.
+
+Completed phase history remains unchanged.
+Original business roadmap anchors also remain unchanged in intent:
+- Booking Workflow MVP
+- First Deployable Demo
+- Customer Validation
+- SaaS Evolution Planning
+
+---
+
 # Next Architecture Decision
 
-Phase 8 — WhatsApp Integration:
-- webhook controller boundary
-- payload validation strategy
-- handoff into Phase 7 AI services
-- minimal message orchestration without workflow engines
+Phase 10 — Conversation Reliability Foundation:
+- conversation persistence boundary
+- session ownership model
+- message history structure
+- idempotent inbound processing
+- audit trail scope before deployment
